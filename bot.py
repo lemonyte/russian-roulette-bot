@@ -1,269 +1,274 @@
-import os
-import json
-import random
-import re
-import shlex
-import datetime
-import itertools
-# import discord
-from discord import Message, Guild, Member, File
+from discord import Guild, File, Embed
 from discord.ext import commands
-from discord.ext.commands import Context
-from dotenv import load_dotenv
-
-load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
-PREFIX_FILE_PATH = 'data/prefixes.json'
-DEFAULT_PREFIXES = ['rr', 'russian-roulette']
-TIME_REGEX = re.compile(r'^((?P<days>[\.\d]+?)d)?((?P<hours>[\.\d]+?)h)?((?P<minutes>[\.\d]+?)m)?((?P<seconds>[\.\d]+?)s)?$')
-FRAMES_PATH = 'data/images/frames/{size}x{size}/{frame}.png'
-GIF_PATH = 'data/images/spin.gif'
+from discord.ext.commands import Context, Bot, has_permissions
+import utils
+from utils import channel_bound
+from game import Game
 
 
-def get_prefixes() -> dict:
-    with open(PREFIX_FILE_PATH, 'r') as file:
-        prefixes = json.load(file)
-    return prefixes
-
-
-def get_prefixes_for_guild(ctx: Context, message: Message) -> list[str]:
-    prefixes = get_prefixes()
-    return prefixes.get(str(message.guild.id), DEFAULT_PREFIXES)
-
-
-def set_prefixes_for_guild(guild: Guild, new_prefixes: list):
-    prefixes = get_prefixes()
-    prefixes[str(guild.id)] = new_prefixes
-    with open(PREFIX_FILE_PATH, 'w') as file:
-        json.dump(prefixes, file, indent=4)
-
-
-def parse_time(time_string: str):
-    parts = TIME_REGEX.match(time_string)
-    assert parts is not None, f"Could not parse any time information from '{time_string}'.  Examples of valid strings: '8h', '2d8h5m20s', '2m4s'"
-    time_params = {name: float(param) for name, param in parts.groupdict().items() if param}
-    return datetime.timedelta(**time_params)
-
-
-class Game:
-    def __init__(self, players: list[Member], info: str = None, duration: str = None, image_size: str = '128'):
-        self.players = players
-        self.info = info
-        self.duration = duration
-        self.image_size = image_size
-        if self.duration is not None:
-            self.duration = parse_time(self.duration)
-        self.luck_messages = [
-            "{user} got lucky.",
-            "{user} is having a good day.",
-            "{user} lives on to the next round.",
-            "{user} survived the odds.",
-            "{user} rigged the game."
-        ]
-        self.death_messages = [
-            "{user} wasn't lucky enough.",
-            "{user} took too many chances.",
-            "{user} took one for the team.",
-            "{user} lost the game, and their life.",
-            "{user} left their brains behind."
-        ]
-        self.player_cycle = itertools.cycle(self.players)
-        self.current_player = next(self.player_cycle)
-
-    async def turn(self, ctx: Context):
-        global current_game
-        if ctx.author != self.current_player:
-            await ctx.send(f"It's {self.current_player.mention}'s turn")
-            return
-        n = random.randint(1, 6)
-        file = File(FRAMES_PATH.format(frame=str(n), size=self.image_size))
-        if n == 1:
-            response = random.choice(self.death_messages).format(user=ctx.message.author.display_name)
-            if self.info is not None:
-                response += '\n' + self.info
-            await ctx.send(response, file=file)
-            if self.duration is not None:
-                duration_end = datetime.datetime.now() + self.duration
-                response = await ctx.send(f"{ctx.message.author.mention} your timer ends at {duration_end.strftime('%Y-%m-%d %H:%M:%S')}")
-                await response.pin()
-            current_game = None
-        else:
-            response = random.choice(self.luck_messages).format(user=ctx.message.author.display_name)
-            await ctx.send(response, file=file)
-            self.current_player = next(self.player_cycle)
-
-
-def parse_command(command: str) -> dict:
-    args = shlex.split(command)
-    keys = []
-    values = []
-    for arg in args:
-        if arg.endswith(':'):
-            keys.append(arg)
-    x = []
-    for arg in args[args.index(keys[0]) + 1:]:
-        if arg not in keys:
-            x.append(arg)
-        if arg in keys or args.index(arg) == len(args) - 1:
-            if x:
-                values.append(x)
-                x = []
-            continue
-    opts = {k.strip(':'): v for k, v in zip(keys, values)}
-    return opts
-
-
+bot = Bot(command_prefix=utils.get_prefixes, case_insensitive=True, strip_after_prefix=True)
 current_game: Game = None
-bound_channel = None
-bot = commands.Bot(command_prefix=get_prefixes_for_guild, case_insensitive=True, strip_after_prefix=True)
 
 
 @bot.event
 async def on_ready():
-    DEFAULT_PREFIXES.append(bot.user.mention)
-    DEFAULT_PREFIXES.append(f"<@!{bot.user.mention.replace('<', '').replace('>', '').replace('@', '').replace('!', '')}>")
-
-
-# @bot.event
-# async def on_message(message: Message):
-#     if message.author == bot.user:
-#         return
-#     if bot.user.mentioned_in(message):
-#         response = f"Hi! I'm the Russian Roulette Bot. My prefixes are: `{', '.join(get_prefixes_for_guild(ctx, ctx.message))}`. For a full list of commands type `rr help`"
-#         await message.channel.send(response)
+    prefixes = utils.DEFAULT_PREFIXES
+    if bot.user.mention not in prefixes:
+        prefixes.append(bot.user.mention)
+    if f'<@!{bot.user.id}>' not in prefixes:
+        prefixes.append(f'<@!{bot.user.id}>')
+    utils.DEFAULT_PREFIXES = prefixes
+    utils.update_guilds(bot)
 
 
 @bot.event
 async def on_guild_join(guild: Guild):
-    prefixes = get_prefixes()
-    prefixes[str(guild.id)] = DEFAULT_PREFIXES
-    with open(PREFIX_FILE_PATH, 'w') as file:
-        json.dump(prefixes, file, indent=4)
+    utils.update_guilds(bot)
 
 
 @bot.event
 async def on_guild_remove(guild: Guild):
-    prefixes = get_prefixes()
-    prefixes.pop(str(guild.id), None)
-    with open(PREFIX_FILE_PATH, 'w') as file:
-        json.dump(prefixes, file, indent=4)
+    guilds = utils.get_guilds()
+    del guilds[str(guild.id)]
+    utils.set_guilds(guilds)
 
 
-@bot.command(aliases=[''])
-async def about(ctx: Context):
-    response = f"Hi! I'm the Russian Roulette Bot. My prefixes are: `{', '.join(get_prefixes_for_guild(ctx, ctx.message))}`. For a full list of commands type `rr help`"
-    await ctx.send(response)
-
-
-# @bot.command()
-# @commands.has_permissions(administrator=True)
-# async def context(ctx: Context, obj: str = ''):
-#     obj = getattr(ctx, obj) if obj else ctx
-#     response = [f'{attr}: {getattr(obj, attr)}' for attr in dir(obj) if not attr.startswith('_') and not callable(getattr(obj, attr))]
-#     response.insert(0, "Context:")
-#     await ctx.send('\n'.join(response))
-
-
-# @bot.command()
-# @commands.has_permissions(administrator=True)
-# async def self(ctx: Context):
-#     message = [f'{x}: {getattr(bot, x)}' for x in dir(bot) if not x.startswith('_') and not callable(getattr(bot, x))]
-#     message.insert(0, "Bot:")
-#     await ctx.send('\n'.join(message))
-
-
-# @bot.command()
-# async def this(ctx: Context):
-#     with open('dump.txt', 'w') as f:
-#         f.write(ctx.message.content)
-#     print(ctx.message.content)
-#     await ctx.send(ctx.message.content)
-
-
-# @bot.group(pass_context=True)
-# async def channel(ctx: Context)
-
-
-# @channel.command()
-# async def bind(ctx: Context, channel: str):
-#     global bound_channel
-#     bound_channel = channel
-#     await ctx.send(f"Successfully bound to channel **`{channel}`**")
-
-
-# @channel.command()
-# async def unbind(ctx: Context, channel: str):
-
-
-@bot.group(pass_context=True)
-async def prefix(ctx: Context):
-    if ctx.invoked_subcommand is None:
-        await ctx.send("Invalid subcommand")
-
-
-@prefix.command(name='list')
-async def prefix_list(ctx: Context):
-    await ctx.send(f"Prefixes: **`{', '.join(get_prefixes_for_guild(ctx, ctx.message))}`**")
-
-
-@prefix.command(name='add')
-@commands.has_permissions(administrator=True)
-async def prefix_add(ctx: Context, prefix: str = None):
-    if prefix is None:
-        ctx.send("Invalid args")
-    prefixes = get_prefixes_for_guild(ctx, ctx.message)
-    prefixes.append(prefix)
-    set_prefixes_for_guild(ctx.guild, prefixes)
-    await ctx.send(f'Successfully added the prefix **`{prefix}`**')
-
-
-@prefix.command(name='remove')
-@commands.has_permissions(administrator=True)
-async def prefix_remove(ctx: Context, prefix: str = None):
-    if prefix is None:
-        ctx.send("Invalid args")
-    prefixes = get_prefixes_for_guild(ctx, ctx.message)
-    if len(prefixes) <= 2:
-        await ctx.send("Cannot have less than 2 prefixes")
+@bot.event
+async def on_command_error(ctx: Context, error: commands.CommandError):
+    if isinstance(error, commands.CommandNotFound):
         return
-    prefixes.remove(prefix)
-    set_prefixes_for_guild(ctx.guild, prefixes)
-    await ctx.send(f'Successfully removed the prefix **`{prefix}`**')
+    else:
+        raise error
+
+
+@bot.command(aliases=['', 'info'])
+@channel_bound
+async def about(ctx: Context):
+    prefix = utils.get_prefixes(ctx.guild)[0]
+    prefixes = [f'**`{p}`**' if not p.startswith('<') else p for p in utils.get_prefixes(ctx.guild)]
+    for p in prefixes:
+        if p.startswith('<'):
+            prefixes.remove(p)
+            break
+    prefixes = ', '.join(prefixes)
+    with open(utils.markdown_path('about'), 'r') as about_file:
+        about = about_file.read().format(prefix=prefix, prefixes=prefixes)
+    embed = Embed(title=utils.TITLE, description=about, color=0xff0000, url=utils.URL)
+    await ctx.send(embed=embed)
 
 
 @bot.command()
+@channel_bound
+async def rules(ctx: Context):
+    with open(utils.markdown_path('rules'), 'r') as rules_file:
+        rules = rules_file.read()
+    embed = Embed(title=f"{utils.TITLE} Rules", description=rules, color=0xff0000, url=utils.URL)
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+@channel_bound
 async def gif(ctx: Context):
-    await ctx.send(file=File(GIF_PATH))
+    await ctx.reply(file=File(utils.GIF_PATH), mention_author=False)
 
 
-# @bot.group(pass_context=True)
-# async def players(ctx: Context):
-# players list
-# players add
-# players remove
+@bot.group(aliases=['prefixes'])
+@channel_bound
+async def prefix(ctx: Context):
+    if ctx.invoked_subcommand is None:
+        await prefix_list(ctx)
 
 
-@bot.command(aliases=['new-game', 'newgame', 'start', 'start-game', 'startgame'])
-async def new(ctx: Context):
+@prefix.command(name='list')
+@channel_bound
+async def prefix_list(ctx: Context):
+    await ctx.reply(f"Prefixes: **`{', '.join(utils.get_prefixes(ctx.guild))}`**", mention_author=False)
+
+
+@prefix.command(name='add')
+@has_permissions(administrator=True)
+@channel_bound
+async def prefix_add(ctx: Context, prefix: str = None):
+    if prefix is None:
+        await ctx.reply("Please specify a prefix to add.", mention_author=False)
+    prefixes = utils.get_prefixes(ctx.guild)
+    if prefix in prefixes:
+        await ctx.reply("Prefix is already added.", mention_author=False)
+        return
+    prefixes.append(prefix)
+    utils.set_prefixes(ctx.guild, prefixes)
+    await ctx.reply(f"Added prefix **`{prefix}`**.", mention_author=False)
+
+
+@prefix.command(name='remove')
+@has_permissions(administrator=True)
+@channel_bound
+async def prefix_remove(ctx: Context, prefix: str = None):
+    if prefix is None:
+        ctx.reply("Please specify a prefix to remove.", mention_author=False)
+    prefixes = utils.get_prefixes(ctx.guild)
+    if len(prefixes) <= 2:
+        await ctx.reply("Cannot have less than 2 prefixes.", mention_author=False)
+        return
+    if prefix in prefixes:
+        prefixes.remove(prefix)
+    else:
+        await ctx.reply("Cannot remove prefix that does not exist.", mention_author=False)
+        return
+    utils.set_prefixes(ctx.guild, prefixes)
+    await ctx.reply(f"Removed prefix **`{prefix}`**.", mention_author=False)
+
+
+@bot.group(aliases=['channels'])
+@channel_bound
+async def channel(ctx: Context):
+    if ctx.invoked_subcommand is None:
+        await channel_list(ctx)
+
+
+@channel.command(name='list')
+@channel_bound
+async def channel_list(ctx: Context):
+    await ctx.reply(f"Bound channels: {', '.join(f'<#{channel}>' for channel in utils.get_channels(ctx.guild))}", mention_author=False)
+
+
+@channel.command(name='bind', aliases=['add'])
+@has_permissions(administrator=True)
+@channel_bound
+async def channel_bind(ctx: Context):
+    channels = utils.get_channels(ctx.guild)
+    if ctx.message.channel_mentions:
+        for channel in ctx.message.channel_mentions:
+            if channel.id not in channels:
+                channels.append(channel.id)
+    else:
+        channel = ctx.channel
+        if channel.id not in channels:
+            channels.append(channel.id)
+            await ctx.reply(f"Bound to channel {channel.mention}.", mention_author=False)
+        else:
+            await ctx.reply("Channel is already bound.", mention_author=False)
+            return
+    utils.set_channels(ctx.guild, channels)
+
+
+@channel.command(name='unbind', aliases=['remove'])
+@has_permissions(administrator=True)
+@channel_bound
+async def channel_unbind(ctx: Context):
+    channels = utils.get_channels(ctx.guild)
+    if ctx.message.channel_mentions:
+        for channel in ctx.message.channel_mentions:
+            if channel.id in channels:
+                channels.remove(channel.id)
+    else:
+        channel = ctx.channel
+        if channel.id in channels:
+            channels.remove(channel.id)
+            await ctx.reply(f"Unbound from channel {channel.mention}.", mention_author=False)
+        else:
+            await ctx.reply("Cannot unbind from channel that is not bound.")
+            return
+    utils.set_channels(ctx.guild, channels)
+
+
+@bot.group(aliases=['players'])
+@channel_bound
+async def player(ctx: Context):
+    if ctx.invoked_subcommand is None:
+        await player_list(ctx)
+
+
+@player.command(name='list')
+@channel_bound
+async def player_list(ctx: Context):
     global current_game
-    opts = parse_command(ctx.message.content)
+    if current_game is None:
+        await ctx.reply("No game started.", mention_author=False)
+        return
+    await ctx.reply(f"Players in current game: {', '.join(player.mention for player in current_game.players)}", mention_author=False)
+
+
+@player.command(name='add')
+@channel_bound
+async def player_add(ctx: Context):
+    global current_game
+    if current_game is None:
+        await ctx.reply("No game started.", mention_author=False)
+        return
+    await current_game.add_players(ctx, ctx.message.mentions)
+
+
+@player.command(name='remove')
+@channel_bound
+async def player_remove(ctx: Context):
+    global current_game
+    if current_game is None:
+        await ctx.reply("No game started.", mention_author=False)
+        return
+    await current_game.remove_players(ctx, ctx.message.mentions)
+
+
+@bot.command(aliases=['startgame', 'start-game', 'new', 'newgame', 'new-game'])
+@channel_bound
+async def start(ctx: Context):
+    global current_game
+    if current_game is not None:
+        await ctx.reply("Game already started.", mention_author=False)
+        return
+    if len(ctx.message.mentions) < 2:
+        await ctx.reply("Must have at least 2 players to start a game.", mention_author=False)
+        return
+    opts = utils.parse_command(ctx.message.content)
     if 'info' in opts.keys():
         opts['info'] = ' '.join(opts['info'])
     if 'duration' in opts.keys():
         opts['duration'] = ''.join(opts['duration'])
     opts['players'] = ctx.message.mentions
-    current_game = Game(**opts)
-    await ctx.send(f"Started a new game with {', '.join(x.display_name for x in ctx.message.mentions)}")
+    current_game = Game(**opts, channel=ctx.channel)
+    await ctx.reply(f"Started a new game with {', '.join(player.mention for player in ctx.message.mentions)}.", mention_author=False)
 
 
-@bot.command()
-async def fire(ctx: Context):
+@bot.command(aliases=['cancelgame', 'cancel-game', 'stop', 'stopgame', 'stop-game', 'end', 'endgame', 'end-game'])
+@channel_bound
+async def cancel(ctx: Context):
     global current_game
     if current_game is None:
-        await ctx.send("No game started")
+        await ctx.reply("No game started.", mention_author=False)
         return
-    await current_game.turn(ctx)
+    current_game = None
+    await ctx.reply("Stopped the current game.", mention_author=False)
+
+
+@bot.command(aliases=['current-game', 'currentgame', 'game-info', 'gameinfo '])
+@channel_bound
+async def current(ctx: Context):
+    global current_game
+    if current_game is None:
+        await ctx.reply("No game started.", mention_author=False)
+        return
+    response = (
+        "**Current game info**:\n"
+        f"Players: {', '.join(player.mention for player in current_game.players)}\n"
+        f"Info: {current_game.info}\n"
+        f"Duration: {current_game.duration}\n"
+        f"Channel: {current_game.channel.mention}"
+    )
+    embed = Embed(title=utils.TITLE, description=response, color=0xff0000, url=utils.URL)
+    await ctx.reply(embed=embed, mention_author=False)
+
+
+@bot.command(aliases=['fire', 'go', 'spin'])
+@channel_bound
+async def shoot(ctx: Context):
+    global current_game
+    if current_game is None:
+        await ctx.reply("No game started.", mention_author=False)
+        return
+    alive = await current_game.turn(ctx)
+    if alive is False:
+        current_game = None
 
 
 if __name__ == '__main__':
-    bot.run(TOKEN)
+    bot.run(utils.DISCORD_TOKEN)
