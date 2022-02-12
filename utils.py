@@ -96,9 +96,12 @@ def update_guilds(bot: Bot):
             guilds[guild_id]['name'] = guild_obj.name
     for guild_obj in bot.guilds:
         if str(guild_obj.id) not in guild_ids:
-            guilds[str(guild_obj.id)] = {'name': guild_obj.name}
-            set_prefixes(guild_obj, DEFAULT_PREFIXES)
-            set_channels(guild_obj, [])
+            guilds[str(guild_obj.id)] = {
+                'name': guild_obj.name,
+                'prefixes': DEFAULT_PREFIXES,
+                'channels': [],
+                'games': {}
+            }
     set_guilds(guilds)
 
 
