@@ -5,28 +5,28 @@ import shlex
 import re
 import datetime
 import functools
-from dotenv import load_dotenv
 from discord import Guild, Message
 from discord.ext.commands import Context, Bot
+from dotenv import load_dotenv
 
 load_dotenv()
 
 PREVIEW = '-p' in sys.argv or '--preview' in sys.argv
 if PREVIEW:
-    SETTINGS_PATH = 'resources/settings/settings_preview.json'
+    SETTINGS_PATH = 'data/settings/settings_preview.json'
     DEFAULT_PREFIXES = ['rrp', 'russian-roulette-preview']
-    FRAME_PATH = 'resources/images/png/{size}x{size}/preview/{frame}.png'
-    MARKDOWN_PATH = 'resources/markdown/{name}.md'
-    GIF_PATH = 'resources/images/gif/spin.gif'
+    FRAME_PATH = 'static/images/png/{size}x{size}/preview/{frame}.png'
+    MARKDOWN_PATH = 'static/markdown/{name}.md'
+    GIF_PATH = 'static/images/gif/spin.gif'
     DISCORD_TOKEN = os.getenv('DISCORD_TOKEN_PREVIEW')
     TITLE = "Russian Roulette [PREVIEW]"
     URL = 'https://github.com/LemonPi314/russian-roulette-bot'
 else:
-    SETTINGS_PATH = 'resources/settings/settings.json'
+    SETTINGS_PATH = 'data/settings/settings.json'
     DEFAULT_PREFIXES = ['rr', 'russian-roulette']
-    FRAME_PATH = 'resources/images/png/{size}x{size}/{frame}.png'
-    MARKDOWN_PATH = 'resources/markdown/{name}.md'
-    GIF_PATH = 'resources/images/gif/spin.gif'
+    FRAME_PATH = 'static/images/png/{size}x{size}/{frame}.png'
+    MARKDOWN_PATH = 'static/markdown/{name}.md'
+    GIF_PATH = 'static/images/gif/spin.gif'
     DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
     TITLE = "Russian Roulette"
     URL = 'https://github.com/LemonPi314/russian-roulette-bot'
@@ -140,9 +140,12 @@ def parse_command(command: str) -> dict:
 
 def channel_bound(func):
     @functools.wraps(func)
-    async def decorator(ctx: Context, *args, **kwargs):
-        if is_channel_bound(ctx):
-            await func(ctx, *args, **kwargs)
+    async def decorator(*args, **kwargs):
+        for arg in args:
+            if isinstance(arg, Context):
+                if is_channel_bound(arg):
+                    await func(*args, **kwargs)
+                return
     return decorator
 
 
