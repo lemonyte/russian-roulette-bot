@@ -12,6 +12,7 @@ __pycache__/
 *token*
 data/
 resources/
+settings/
 config/
 
 ## Ignore Visual Studio temporary files, build results, and
