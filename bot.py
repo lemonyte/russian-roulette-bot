@@ -24,6 +24,7 @@ class RussianRoulette(Bot):
         await self.load_extension('core')
         await self.load_extension('settings')
         await self.load_extension('game')
+        await self.tree.sync()
 
 
 if __name__ == '__main__':

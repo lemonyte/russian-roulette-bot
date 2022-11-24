@@ -1,6 +1,5 @@
-from discord import Embed
-from discord.ext import commands
-from discord.ext.commands import Bot, Cog, Context, command
+from discord import app_commands, Embed, Interaction
+from discord.ext.commands import Bot, Cog
 
 import utils
 from utils import channel_bound
@@ -31,34 +30,21 @@ class Core(Cog):
         del guilds[str(guild.id)]
         utils.set_guilds(guilds)
 
-    @Cog.listener()
-    async def on_command_error(self, ctx: Context, error: commands.CommandError):
-        if isinstance(error, commands.CommandNotFound):
-            return
-        raise error
-
-    @command(aliases=['', 'info'])
+    @app_commands.command()
     @channel_bound
-    async def about(self, ctx: Context):
-        prefix = utils.get_prefixes(ctx.guild)[0]
-        prefixes = [f'**`{p}`**' if not p.startswith('<') else p for p in utils.get_prefixes(ctx.guild)]
-        for p in prefixes:
-            if p.startswith('<'):
-                prefixes.remove(p)
-                break
-        prefixes = ', '.join(prefixes)
+    async def about(self, interaction: Interaction):
         with open(utils.markdown_path('about'), 'r') as about_file:
-            about = about_file.read().format(prefix=prefix, prefixes=prefixes)
+            about = about_file.read()
         embed = Embed(title=utils.TITLE, description=about, color=0xff0000, url=utils.URL)
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
-    @command()
+    @app_commands.command()
     @channel_bound
-    async def rules(self, ctx: Context):
+    async def rules(self, interaction: Interaction):
         with open(utils.markdown_path('rules'), 'r') as rules_file:
             rules = rules_file.read()
         embed = Embed(title=f"{utils.TITLE} Rules", description=rules, color=0xff0000, url=utils.URL)
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot: Bot):
