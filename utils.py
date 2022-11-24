@@ -4,8 +4,6 @@ import json
 import shlex
 import re
 import datetime
-import functools
-from discord import Guild, Message
 from discord.ext.commands import Bot
 from dotenv import load_dotenv
 
@@ -52,30 +50,6 @@ def set_guilds(guilds: dict):
     settings['guilds'] = guilds
     with open(SETTINGS_PATH, 'w') as file:
         json.dump(settings, file, indent=4)
-
-
-def get_prefixes(guild: Guild, message: Message = None) -> list[str]:
-    if isinstance(guild, Guild):
-        id = guild.id
-    else:
-        id = message.guild.id
-    return get_guilds().get(str(id), {}).get('prefixes', DEFAULT_PREFIXES)
-
-
-def set_prefixes(guild: Guild, prefixes: list[str]):
-    guilds = get_guilds()
-    guilds[str(guild.id)]['prefixes'] = prefixes
-    set_guilds(guilds)
-
-
-def get_channels(guild: Guild) -> list[int]:
-    return get_guilds().get(str(guild.id), {}).get('channels', [])
-
-
-def set_channels(guild: Guild, channels: list[int]):
-    guilds = get_guilds()
-    guilds[str(guild.id)]['channels'] = channels
-    set_guilds(guilds)
 
 
 def update_guilds(bot: Bot):
