@@ -171,5 +171,5 @@ class Game(Cog):
         await ctx.reply(f"Removed {' '.join(player.mention for player in players)} from the current game.", mention_author=False)
 
 
-def setup(bot: Bot):
-    bot.add_cog(Game(bot))
+async def setup(bot: Bot):
+    await bot.add_cog(Game(bot))

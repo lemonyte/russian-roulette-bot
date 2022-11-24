@@ -101,5 +101,5 @@ class Settings(Cog):
         utils.set_channels(ctx.guild, channels)
 
 
-def setup(bot: Bot):
-    bot.add_cog(Settings(bot))
+async def setup(bot: Bot):
+    await bot.add_cog(Settings(bot))

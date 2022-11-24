@@ -1,21 +1,39 @@
-from discord import Guild, Embed
+from discord import Guild, Embed, Intents
 from discord.ext import commands
 from discord.ext.commands import Context, Bot
 import utils
 from utils import channel_bound
 
-bot = Bot(command_prefix=utils.get_prefixes, case_insensitive=True, strip_after_prefix=True)
+
+class RussianRoulette(Bot):
+    def __init__(self):
+        intents = Intents(
+            guilds=True,
+            messages=True,
+            message_content=True,
+        )
+        super().__init__(
+            command_prefix=utils.get_prefixes,
+            intents=intents,
+            case_insensitive=True,
+            strip_after_prefix=True,
+        )
+
+    async def setup_hook(self):
+        await self.load_extension('settings')
+        await self.load_extension('game')
+
+    async def on_ready(self):
+        prefixes = utils.DEFAULT_PREFIXES
+        if bot.user.mention not in prefixes:
+            prefixes.append(bot.user.mention)
+        if f'<@!{bot.user.id}>' not in prefixes:
+            prefixes.append(f'<@!{bot.user.id}>')
+        utils.DEFAULT_PREFIXES = prefixes
+        utils.update_guilds(bot)
 
 
-@bot.event
-async def on_ready():
-    prefixes = utils.DEFAULT_PREFIXES
-    if bot.user.mention not in prefixes:
-        prefixes.append(bot.user.mention)
-    if f'<@!{bot.user.id}>' not in prefixes:
-        prefixes.append(f'<@!{bot.user.id}>')
-    utils.DEFAULT_PREFIXES = prefixes
-    utils.update_guilds(bot)
+bot = RussianRoulette()
 
 
 @bot.event
@@ -64,6 +82,4 @@ async def rules(ctx: Context):
 
 
 if __name__ == '__main__':
-    bot.load_extension('settings')
-    bot.load_extension('game')
     bot.run(utils.DISCORD_TOKEN)
