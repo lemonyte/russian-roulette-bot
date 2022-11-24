@@ -111,7 +111,11 @@ def parse_time(time_string: str, regex: str = None) -> datetime.timedelta:
     else:
         regex: re.Pattern = re.compile(r'^((?P<days>[\.\d]+?)d)?((?P<hours>[\.\d]+?)h)?((?P<minutes>[\.\d]+?)m)?((?P<seconds>[\.\d]+?)s)?$')
     parts = regex.match(time_string)
-    assert parts is not None, f"Could not parse any time information from '{time_string}'.  Examples of valid strings: '16h', '2d8h5m20s', '7m4s'"
+    if parts is None:
+        raise ValueError(
+            f"Could not parse time information from '{time_string}'. "
+            "Examples of valid strings: '16h', '2d8h5m20s', '7m4s'"
+        )
     time_params = {name: float(param) for name, param in parts.groupdict().items() if param}
     return datetime.timedelta(**time_params)
 

@@ -54,7 +54,11 @@ class Game(Cog):
         if 'info' in opts.keys():
             self.info = ' '.join(opts['info'])
         if 'duration' in opts.keys():
-            self.duration = utils.parse_time(''.join(opts['duration']))
+            try:
+                self.duration = utils.parse_time(''.join(opts['duration']))
+            except ValueError as exc:
+                await ctx.reply(exc.args[0], mention_author=False)
+                return
         self.channel = ctx.channel
         self.players = ctx.message.mentions
         self.current_player = self.players[0]
