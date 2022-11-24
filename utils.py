@@ -135,11 +135,3 @@ def parse_command(command: str) -> dict:
             continue
     opts = {k.strip(':'): v for k, v in zip(keys, values)}
     return opts
-
-
-def preview_command(func):
-    @functools.wraps(func)
-    async def decorator(*args, **kwargs):
-        if PREVIEW:
-            await func(*args, **kwargs)
-    return decorator
