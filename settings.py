@@ -1,6 +1,5 @@
 from discord.ext.commands import Bot, Cog, Context, has_permissions, group
 import utils
-from utils import channel_bound
 
 
 class Settings(Cog):
@@ -8,19 +7,16 @@ class Settings(Cog):
         self.bot = bot
 
     @group(aliases=['prefixes'])
-    @channel_bound
     async def prefix(self, ctx: Context):
         if ctx.invoked_subcommand is None:
             await self.prefix_list(ctx)
 
     @prefix.command(name='list')
-    @channel_bound
     async def prefix_list(self, ctx: Context):
         await ctx.reply(f"Prefixes: **`{', '.join(utils.get_prefixes(ctx.guild))}`**", mention_author=False)
 
     @prefix.command(name='add')
     @has_permissions(manage_guild=True)
-    @channel_bound
     async def prefix_add(self, ctx: Context, prefix: str = None):
         if prefix is None:
             await ctx.reply("Please specify a prefix to add.", mention_author=False)
@@ -34,7 +30,6 @@ class Settings(Cog):
 
     @prefix.command(name='remove')
     @has_permissions(manage_guild=True)
-    @channel_bound
     async def prefix_remove(self, ctx: Context, prefix: str = None):
         if prefix is None:
             ctx.reply("Please specify a prefix to remove.", mention_author=False)
@@ -51,19 +46,16 @@ class Settings(Cog):
         await ctx.reply(f"Removed prefix **`{prefix}`**.", mention_author=False)
 
     @group(aliases=['channels'])
-    @channel_bound
     async def channel(self, ctx: Context):
         if ctx.invoked_subcommand is None:
             await self.channel_list(ctx)
 
     @channel.command(name='list')
-    @channel_bound
     async def channel_list(self, ctx: Context):
         await ctx.reply(f"Bound channels: {' '.join(f'<#{channel}>' for channel in utils.get_channels(ctx.guild))}", mention_author=False)
 
     @channel.command(name='add', aliases=['bind'])
     @has_permissions(manage_guild=True)
-    @channel_bound
     async def channel_add(self, ctx: Context):
         channels = utils.get_channels(ctx.guild)
         if ctx.message.channel_mentions:
@@ -83,7 +75,6 @@ class Settings(Cog):
 
     @channel.command(name='remove', aliases=['unbind'])
     @has_permissions(manage_guild=True)
-    @channel_bound
     async def channel_remove(self, ctx: Context):
         channels = utils.get_channels(ctx.guild)
         if ctx.message.channel_mentions:

@@ -4,7 +4,6 @@ import functools
 from discord import Embed, File
 from discord.ext.commands import Bot, Cog, Context, command, group
 import utils
-from utils import channel_bound
 
 
 class Game(Cog):
@@ -42,7 +41,6 @@ class Game(Cog):
         return decorator
 
     @command(aliases=['startgame', 'start-game', 'new', 'newgame', 'new-game'])
-    @channel_bound
     async def start(self, ctx: Context):
         if self.game_started:
             await ctx.reply("Game already started.", mention_author=False)
@@ -68,7 +66,6 @@ class Game(Cog):
             await self.shoot(ctx, self.bot.user)
 
     @command(aliases=['cancelgame', 'cancel-game', 'stop', 'stopgame', 'stop-game', 'end', 'endgame', 'end-game'])
-    @channel_bound
     @game_command
     async def cancel(self, ctx: Context):
         self.game_started = False
@@ -80,7 +77,6 @@ class Game(Cog):
         await ctx.reply("Stopped the current game.", mention_author=False)
 
     @command(aliases=['current-game', 'currentgame', 'game-info', 'gameinfo '])
-    @channel_bound
     @game_command
     async def current(self, ctx: Context):
         response = (
@@ -94,7 +90,6 @@ class Game(Cog):
         await ctx.reply(embed=embed, mention_author=False)
 
     @command(aliases=['fire', 'go', 'spin', 'pull'])
-    @channel_bound
     @game_command
     async def shoot(self, ctx: Context, player=None):
         if ctx.channel != self.channel:
@@ -136,24 +131,20 @@ class Game(Cog):
                 await self.shoot(ctx, self.bot.user)
 
     @command()
-    @channel_bound
     async def gif(self, ctx: Context):
         await ctx.reply(file=File(utils.GIF_PATH), mention_author=False)
 
     @group(aliases=['players'])
-    @channel_bound
     async def player(self, ctx: Context):
         if ctx.invoked_subcommand is None:
             await self.player_list(ctx)
 
     @player.command(name='list')
-    @channel_bound
     @game_command
     async def player_list(self, ctx: Context):
         await ctx.reply(f"Players in current game: {' '.join(player.mention for player in self.players)}", mention_author=False)
 
     @player.command(name='add')
-    @channel_bound
     @game_command
     async def player_add(self, ctx: Context):
         players = ctx.message.mentions
@@ -161,7 +152,6 @@ class Game(Cog):
         await ctx.reply(f"Added {' '.join(player.mention for player in players)} to the current game.", mention_author=False)
 
     @player.command(name='remove')
-    @channel_bound
     @game_command
     async def player_remove(self, ctx: Context):
         players = ctx.message.mentions

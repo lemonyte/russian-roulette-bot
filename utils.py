@@ -6,7 +6,7 @@ import re
 import datetime
 import functools
 from discord import Guild, Message
-from discord.ext.commands import Context, Bot
+from discord.ext.commands import Bot
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -78,11 +78,6 @@ def set_channels(guild: Guild, channels: list[int]):
     set_guilds(guilds)
 
 
-def is_channel_bound(ctx: Context) -> bool:
-    channels = get_channels(ctx.guild)
-    return ctx.channel.id in channels or not channels
-
-
 def update_guilds(bot: Bot):
     guilds = get_guilds()
     guild_ids = list(guilds.keys())
@@ -140,17 +135,6 @@ def parse_command(command: str) -> dict:
             continue
     opts = {k.strip(':'): v for k, v in zip(keys, values)}
     return opts
-
-
-def channel_bound(func):
-    @functools.wraps(func)
-    async def decorator(*args, **kwargs):
-        for arg in args:
-            if isinstance(arg, Context):
-                if is_channel_bound(arg):
-                    await func(*args, **kwargs)
-                return
-    return decorator
 
 
 def preview_command(func):
