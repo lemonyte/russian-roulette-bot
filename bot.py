@@ -1,4 +1,4 @@
-from discord import Guild, Embed, Intents
+from discord import Game, Guild, Embed, Intents
 from discord.ext import commands
 from discord.ext.commands import Context, Bot
 import utils
@@ -12,9 +12,11 @@ class RussianRoulette(Bot):
             messages=True,
             message_content=True,
         )
+        activity = Game(r"is 83.3% safe!")
         super().__init__(
             command_prefix=utils.get_prefixes,
             intents=intents,
+            activity=activity,
             case_insensitive=True,
             strip_after_prefix=True,
         )
