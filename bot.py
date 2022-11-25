@@ -22,7 +22,6 @@ class RussianRoulette(Bot):
 
     async def setup_hook(self):
         await self.load_extension('core')
-        await self.load_extension('settings')
         await self.load_extension('game')
         await self.tree.sync()
 
