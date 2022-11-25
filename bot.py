@@ -6,15 +6,10 @@ import utils
 
 class RussianRoulette(Bot):
     def __init__(self):
-        intents = Intents(
-            guilds=True,
-            messages=True,
-            message_content=True,
-        )
         activity = Game(r"is 83.3% safe!")
         super().__init__(
             command_prefix=utils.DEFAULT_PREFIXES,
-            intents=intents,
+            intents=Intents(guilds=True),
             activity=activity,
             case_insensitive=True,
             strip_after_prefix=True,
