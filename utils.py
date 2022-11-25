@@ -1,17 +1,13 @@
 import os
 import sys
-import json
-import shlex
 import re
 import datetime
-from discord.ext.commands import Bot
 from dotenv import load_dotenv
 
 load_dotenv()
 
 PREVIEW = '-p' in sys.argv or '--preview' in sys.argv
 if PREVIEW:
-    SETTINGS_PATH = 'data/settings/settings_preview.json'
     DEFAULT_PREFIXES = ['rrp', 'russian-roulette-preview']
     FRAME_PATH = 'static/images/png/{size}x{size}/preview/{frame}.png'
     MARKDOWN_PATH = 'static/markdown/{name}.md'
@@ -20,7 +16,6 @@ if PREVIEW:
     TITLE = "Russian Roulette [PREVIEW]"
     URL = 'https://github.com/LemonPi314/russian-roulette-bot'
 else:
-    SETTINGS_PATH = 'data/settings/settings.json'
     DEFAULT_PREFIXES = ['rr', 'russian-roulette']
     FRAME_PATH = 'static/images/png/{size}x{size}/{frame}.png'
     MARKDOWN_PATH = 'static/markdown/{name}.md'
@@ -38,42 +33,6 @@ def markdown_path(name: str) -> str:
     return MARKDOWN_PATH.format(name=name)
 
 
-def get_guilds() -> dict:
-    with open(SETTINGS_PATH, 'r') as file:
-        settings = json.load(file)
-    return settings['guilds']
-
-
-def set_guilds(guilds: dict):
-    with open(SETTINGS_PATH, 'r') as file:
-        settings = json.load(file)
-    settings['guilds'] = guilds
-    with open(SETTINGS_PATH, 'w') as file:
-        json.dump(settings, file, indent=4)
-
-
-def update_guilds(bot: Bot):
-    guilds = get_guilds()
-    guild_ids = list(guilds.keys())
-    if 'default' in guild_ids:
-        guild_ids.remove('default')
-    for guild_id in guild_ids:
-        guild_obj = bot.get_guild(int(guild_id))
-        if not guild_obj:
-            guilds.pop(guild_id)
-        else:
-            guilds[guild_id]['name'] = guild_obj.name
-    for guild_obj in bot.guilds:
-        if str(guild_obj.id) not in guild_ids:
-            guilds[str(guild_obj.id)] = {
-                'name': guild_obj.name,
-                'prefixes': DEFAULT_PREFIXES,
-                'channels': [],
-                'games': {}
-            }
-    set_guilds(guilds)
-
-
 def parse_time(time_string: str, regex: str = None) -> datetime.timedelta:
     if regex:
         regex: re.Pattern = re.compile(regex)
@@ -87,25 +46,3 @@ def parse_time(time_string: str, regex: str = None) -> datetime.timedelta:
         )
     time_params = {name: float(param) for name, param in parts.groupdict().items() if param}
     return datetime.timedelta(**time_params)
-
-
-def parse_command(command: str) -> dict:
-    args = shlex.split(command)
-    keys = []
-    values = []
-    for arg in args:
-        if arg.endswith(':'):
-            keys.append(arg)
-    if not keys:
-        return {}
-    x = []
-    for arg in args[args.index(keys[0]) + 1:]:
-        if arg not in keys:
-            x.append(arg)
-        if arg in keys or args.index(arg) == len(args) - 1:
-            if x:
-                values.append(x)
-                x = []
-            continue
-    opts = {k.strip(':'): v for k, v in zip(keys, values)}
-    return opts

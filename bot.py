@@ -13,7 +13,7 @@ class RussianRoulette(Bot):
         )
         activity = Game(r"is 83.3% safe!")
         super().__init__(
-            command_prefix=utils.get_prefixes,
+            command_prefix=utils.DEFAULT_PREFIXES,
             intents=intents,
             activity=activity,
             case_insensitive=True,
