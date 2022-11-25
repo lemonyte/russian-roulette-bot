@@ -156,13 +156,13 @@ class Game(Cog):
 
     @command()
     @game_command
-    async def list_players(self, interaction: Interaction):
+    async def listplayers(self, interaction: Interaction):
         await interaction.response.send_message(f"Players in current game: {' '.join(player.mention for player in self.players)}")
 
     @command()
     @game_command
     # Temporarily only accepts one user.
-    async def add_player(self, interaction: Interaction, player: User):
+    async def addplayer(self, interaction: Interaction, player: User):
         # self.players.extend([player for player in players if player not in self.players])
         # await interaction.response.send_message(f"Added {' '.join(player.mention for player in players)} to the current game.")
         self.players.append(player)
@@ -171,7 +171,7 @@ class Game(Cog):
     @command()
     @game_command
     # Temporarily only accepts one user.
-    async def remove_player(self, interaction: Interaction, player: User):
+    async def removeplayer(self, interaction: Interaction, player: User):
         if len(self.players) <= 2:
             await interaction.response.send_message("Cannot have less than 2 players in a game.", ephemeral=True)
             return
