@@ -20,21 +20,6 @@ class Game(Cog):
         self.duration = None
         self.current_player = None
         self.game_started = False
-        self.image_size = '128'
-        self.luck_messages = [
-            "{user} got lucky.",
-            "{user} is having a good day.",
-            "{user} lives on to the next round.",
-            "{user} survived the odds.",
-            "{user} rigged the game."
-        ]
-        self.death_messages = [
-            "{user} wasn't lucky enough.",
-            "{user} took too many chances.",
-            "{user} took one for the team.",
-            "{user} lost the game, and their life.",
-            "{user} left their brains behind."
-        ]
 
     @staticmethod
     def game_command(func):
@@ -118,7 +103,7 @@ class Game(Cog):
         n = random.randint(1, 6)
         file = File(f'assets/images/frame_{n}.png', 'thumbnail.png')
         if n == 1:
-            response = random.choice(self.death_messages).format(user=player.display_name)
+            response = random.choice(config.death_messages).format(player=player.display_name)
             embed = Embed(title=config.name, description=response, color=0xff0000, url=config.url)
             embed.set_thumbnail(url='attachment://thumbnail.png')
             if not interaction.response.is_done():
@@ -138,7 +123,7 @@ class Game(Cog):
             self.duration = None
             self.current_player = None
         else:
-            response = random.choice(self.luck_messages).format(user=player.display_name)
+            response = random.choice(config.luck_messages).format(player=player.display_name)
             embed = Embed(title=config.name, description=response, color=0xff0000, url=config.url)
             embed.set_thumbnail(url='attachment://thumbnail.png')
             if not interaction.response.is_done():

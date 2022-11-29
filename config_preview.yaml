@@ -2,3 +2,17 @@ name: "Russian Roulette [PREVIEW]"
 url: "https://github.com/LemonPi314/russian-roulette-bot"
 color: 0x00FF00
 prefixes: ["rrp", "russian-roulette-preview"]
+luck_messages:
+  - "{player} got lucky."
+  - "{player} is having a good day."
+  - "{player} lives on to the next round."
+  - "{player} survived the odds."
+  - "{player} rigged the game."
+  - "{player} cheated death."
+death_messages:
+  - "{player} died."
+  - "{player} wasn't lucky enough."
+  - "{player} took too many chances."
+  - "{player} took one for the team."
+  - "{player} lost the game, and their life."
+  - "{player} left their brains behind."

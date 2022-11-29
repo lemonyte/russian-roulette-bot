@@ -29,10 +29,18 @@ class Config:
         self.name: str = config_data.get('name', '')
         self.url: str = config_data.get('url', '')
         self.color: int = config_data.get('color', 0x000000)
-        self.prefixes: list[str] = config_data.get('prefixes', [])
 
+        self.prefixes: list[str] = config_data.get('prefixes', [])
         if not self.prefixes:
-            raise ValueError("no prefixes found in config file")
+            raise ValueError("'prefixes' config field must be a non-empty list")
+
+        self.luck_messages: list[str] = config_data.get('luck_messages', [])
+        if not self.luck_messages:
+            raise ValueError("'luck_messages' config field must be a non-empty list")
+
+        self.death_messages: list[str] = config_data.get('death_messages', [])
+        if not self.death_messages:
+            raise ValueError("'death_messages' config field must be a non-empty list")
 
         if self.preview:
             discord_token = os.getenv('DISCORD_TOKEN_PREVIEW')
