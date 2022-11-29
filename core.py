@@ -1,7 +1,7 @@
 from discord import app_commands, Embed, Interaction
 from discord.ext.commands import Bot, Cog
 
-import utils
+from config import config
 
 
 class Core(Cog):
@@ -14,16 +14,16 @@ class Core(Cog):
 
     @app_commands.command()
     async def about(self, interaction: Interaction):
-        with open(utils.markdown_path('about'), 'r') as about_file:
+        with open('assets/markdown/about.md', 'r') as about_file:
             about = about_file.read()
-        embed = Embed(title=utils.TITLE, description=about, color=0xff0000, url=utils.URL)
+        embed = Embed(title=config.name, description=about, color=config.color, url=config.url)
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command()
     async def rules(self, interaction: Interaction):
-        with open(utils.markdown_path('rules'), 'r') as rules_file:
+        with open('assets/markdown/rules.md', 'r') as rules_file:
             rules = rules_file.read()
-        embed = Embed(title=f"{utils.TITLE} Rules", description=rules, color=0xff0000, url=utils.URL)
+        embed = Embed(title=f"{config.name} Rules", description=rules, color=config.color, url=config.url)
         await interaction.response.send_message(embed=embed)
 
 

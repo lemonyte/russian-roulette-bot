@@ -1,4 +1,5 @@
 import random
+import re
 import datetime
 import functools
 from typing import Optional
@@ -6,7 +7,8 @@ from typing import Optional
 from discord import Embed, File, Interaction, User
 from discord.app_commands import command
 from discord.ext.commands import Bot, Cog
-import utils
+
+from config import config
 
 
 class Game(Cog):
@@ -63,7 +65,7 @@ class Game(Cog):
             self.info = info
         if duration:
             try:
-                self.duration = utils.parse_time(duration)
+                self.duration = parse_time(duration)
             except ValueError as exc:
                 await interaction.response.send_message(exc.args[0], ephemeral=True)
                 return
@@ -99,7 +101,7 @@ class Game(Cog):
             f"Duration: {self.duration}\n"
             f"Channel: {self.channel.mention}"
         )
-        embed = Embed(title=utils.TITLE, description=response, color=0xff0000, url=utils.URL)
+        embed = Embed(title=config.name, description=response, color=0xff0000, url=config.url)
         await interaction.response.send_message(embed=embed)
 
     @command()
@@ -114,10 +116,10 @@ class Game(Cog):
         if player != self.current_player:
             await interaction.response.send_message(f"It's {self.current_player.mention}'s turn.", ephemeral=True)
         n = random.randint(1, 6)
-        file = File(utils.frame_path(n, self.image_size), 'thumbnail.png')
+        file = File(f'assets/images/frame_{n}.png', 'thumbnail.png')
         if n == 1:
             response = random.choice(self.death_messages).format(user=player.display_name)
-            embed = Embed(title=utils.TITLE, description=response, color=0xff0000, url=utils.URL)
+            embed = Embed(title=config.name, description=response, color=0xff0000, url=config.url)
             embed.set_thumbnail(url='attachment://thumbnail.png')
             if not interaction.response.is_done():
                 await interaction.response.send_message(embed=embed, file=file)
@@ -137,7 +139,7 @@ class Game(Cog):
             self.current_player = None
         else:
             response = random.choice(self.luck_messages).format(user=player.display_name)
-            embed = Embed(title=utils.TITLE, description=response, color=0xff0000, url=utils.URL)
+            embed = Embed(title=config.name, description=response, color=0xff0000, url=config.url)
             embed.set_thumbnail(url='attachment://thumbnail.png')
             if not interaction.response.is_done():
                 await interaction.response.send_message(embed=embed, file=file)
@@ -152,7 +154,7 @@ class Game(Cog):
 
     @command()
     async def gif(self, interaction: Interaction):
-        await interaction.response.send_message(file=File(utils.GIF_PATH))
+        await interaction.response.send_message(file=File('assets/images/spin.gif'))
 
     @command()
     @game_command
@@ -181,6 +183,20 @@ class Game(Cog):
         self.current_player = self.players[0]
         # await interaction.response.send_message(f"Removed {' '.join(player.mention for player in players)} from the current game.")
         await interaction.response.send_message(f"Removed {player.mention} from the current game.")
+
+
+def parse_time(time_string: str) -> datetime.timedelta:
+    regex = re.compile(
+        r'^((?P<days>[\.\d]+?)d)?((?P<hours>[\.\d]+?)h)?((?P<minutes>[\.\d]+?)m)?((?P<seconds>[\.\d]+?)s)?$',
+    )
+    parts = regex.match(time_string)
+    if parts is None:
+        raise ValueError(
+            f"Could not parse time information from '{time_string}'. "
+            "Examples of valid strings: '16h', '2d8h5m20s', '7m4s'"
+        )
+    time_params = {name: float(param) for name, param in parts.groupdict().items() if param}
+    return datetime.timedelta(**time_params)
 
 
 async def setup(bot: Bot):
