@@ -1,4 +1,4 @@
-from discord import Game, Intents
+from discord import Activity, Intents
 from discord.ext.commands import Bot
 
 from config import config
@@ -6,11 +6,10 @@ from config import config
 
 class RussianRoulette(Bot):
     def __init__(self):
-        activity = Game(r"is 83.3% safe!")
         super().__init__(
             command_prefix=config.prefixes,
             intents=Intents(guilds=True),
-            activity=activity,
+            activity=Activity(name=config.activity.text, type=config.activity.type),
             case_insensitive=True,
             strip_after_prefix=True,
         )
@@ -23,4 +22,4 @@ class RussianRoulette(Bot):
 
 if __name__ == '__main__':
     bot = RussianRoulette()
-    bot.run(config.discord_token)
+    bot.run(config.token)

@@ -103,7 +103,7 @@ class Game(Cog):
         n = random.randint(1, 6)
         file = File(f'assets/images/frame_{n}.png', 'thumbnail.png')
         if n == 1:
-            response = random.choice(config.death_messages).format(player=player.display_name)
+            response = random.choice(config.game.death_messages).format(player=player.display_name)
             embed = Embed(title=config.name, description=response, color=0xff0000, url=config.url)
             embed.set_thumbnail(url='attachment://thumbnail.png')
             if not interaction.response.is_done():
@@ -123,7 +123,7 @@ class Game(Cog):
             self.duration = None
             self.current_player = None
         else:
-            response = random.choice(config.luck_messages).format(player=player.display_name)
+            response = random.choice(config.game.luck_messages).format(player=player.display_name)
             embed = Embed(title=config.name, description=response, color=0xff0000, url=config.url)
             embed.set_thumbnail(url='attachment://thumbnail.png')
             if not interaction.response.is_done():
