@@ -40,6 +40,7 @@ class Game(Cog):
         info: Optional[str] = None,
         duration: Optional[str] = None,
     ):
+        """Start a new game."""
         if self.game_started:
             await interaction.response.send_message("Game already started.", ephemeral=True)
             return
@@ -68,6 +69,7 @@ class Game(Cog):
     @command()
     @game_command
     async def stop(self, interaction: Interaction):
+        """Stop the current game."""
         self.game_started = False
         self.players = []
         self.channel = None
@@ -79,6 +81,7 @@ class Game(Cog):
     @command()
     @game_command
     async def current(self, interaction: Interaction):
+        """Show information about the current game."""
         response = (
             "**Current game info**:\n"
             f"Players: {' '.join(player.mention for player in self.players)}\n"
@@ -92,6 +95,7 @@ class Game(Cog):
     @command()
     @game_command
     async def shoot(self, interaction: Interaction, player: Optional[User] = None):
+        """Pull the trigger."""
         # await interaction.response.defer()
         if interaction.channel != self.channel:
             await interaction.response.send_message(f"This game was started in the {self.channel} channel.", ephemeral=True)
@@ -139,17 +143,20 @@ class Game(Cog):
 
     @command()
     async def gif(self, interaction: Interaction):
+        """Send a GIF version of the game for screenshotting."""
         await interaction.response.send_message(file=File('assets/images/spin.gif'))
 
     @command()
     @game_command
     async def listplayers(self, interaction: Interaction):
+        """List the players in the current game."""
         await interaction.response.send_message(f"Players in current game: {' '.join(player.mention for player in self.players)}")
 
     @command()
     @game_command
     # Temporarily only accepts one user.
     async def addplayer(self, interaction: Interaction, player: User):
+        """Add a player to the current game."""
         # self.players.extend([player for player in players if player not in self.players])
         # await interaction.response.send_message(f"Added {' '.join(player.mention for player in players)} to the current game.")
         self.players.append(player)
@@ -159,6 +166,7 @@ class Game(Cog):
     @game_command
     # Temporarily only accepts one user.
     async def removeplayer(self, interaction: Interaction, player: User):
+        """Remove a player from the current game."""
         if len(self.players) <= 2:
             await interaction.response.send_message("Cannot have less than 2 players in a game.", ephemeral=True)
             return

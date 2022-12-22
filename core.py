@@ -14,6 +14,7 @@ class Core(Cog):
 
     @app_commands.command()
     async def about(self, interaction: Interaction):
+        """Show information about the bot."""
         with open('assets/markdown/about.md', 'r') as about_file:
             about = about_file.read()
         embed = Embed(title=config.name, description=about, color=config.color, url=config.url)
@@ -21,6 +22,7 @@ class Core(Cog):
 
     @app_commands.command()
     async def rules(self, interaction: Interaction):
+        """Show the rules of the game."""
         with open('assets/markdown/rules.md', 'r') as rules_file:
             rules = rules_file.read()
         embed = Embed(title=f"{config.name} Rules", description=rules, color=config.color, url=config.url)
