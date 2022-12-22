@@ -13,6 +13,11 @@ class Core(Cog):
         print(f"Startup complete - logged in as {self.bot.user}")
 
     @app_commands.command()
+    async def ping(self, interaction: Interaction):
+        """Check the bot's latency."""
+        await interaction.response.send_message(f"Pong! Latency is `{round(self.bot.latency * 1000)}ms`")
+
+    @app_commands.command()
     async def about(self, interaction: Interaction):
         """Show information about the bot."""
         with open('assets/markdown/about.md', 'r') as about_file:
