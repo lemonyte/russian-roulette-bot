@@ -80,4 +80,4 @@ There is also a "preview mode" which allows for testing changes without affectin
 If you are unfamiliar with the [Discord Developer Portal](https://discord.com/developers/applications) or Python, check out [this tutorial](https://realpython.com/how-to-make-a-discord-bot-python/).
 
 ## License
-[MIT License](https://choosealicense.com/licenses/mit/)
+[MIT License](license.txt)
