@@ -18,6 +18,11 @@ class Core(Cog):
         await interaction.response.send_message(f"Pong! Latency is `{round(self.bot.latency * 1000)}ms`")
 
     @app_commands.command()
+    async def invite(self, interaction: Interaction):
+        """Get an invite link for the bot."""
+        await interaction.response.send_message(f"Invite me to your server: {config.invite}")
+
+    @app_commands.command()
     async def about(self, interaction: Interaction):
         """Show information about the bot."""
         with open('assets/markdown/about.md', 'r') as about_file:

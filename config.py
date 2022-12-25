@@ -103,9 +103,13 @@ class _GameConfig(metaclass=ConfigMeta, obj_path='game'):
 
 class _Config(metaclass=ConfigMeta):
     name: str = "Russian Roulette"
-    url: str = "https://github.com/LemonPi314/russian-roulette-bot"
+    url: str = 'https://github.com/LemonPi314/russian-roulette-bot'
     color: int = 0xFF0000
     prefixes: list = ['rr', 'russian-roulette']
+    invite: str = (
+        r'https://discord.com/api/oauth2/authorize?client_id=901284333770383440'
+        r'&permissions=137506374720&scope=applications.commands%20bot'
+    )
     preview: bool = PREVIEW
     token: str = os.getenv('DISCORD_TOKEN_PREVIEW' if PREVIEW else 'DISCORD_TOKEN') or ''
     activity: _ActivityConfig
