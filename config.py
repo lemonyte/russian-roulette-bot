@@ -13,8 +13,8 @@ except ModuleNotFoundError:
 PREVIEW = '--preview' in sys.argv or '-p' in sys.argv
 
 
-class ConfigMeta(type):
-    """Metaclass for populating config classes.
+class ConfigBase:
+    """Superclass for populating config classes upon instantiation.
 
     Config classes define fields with type annotations, and optionally a default value.
     Fields will be populated with values from a YAML file, or the default value if no value is found.
@@ -23,7 +23,7 @@ class ConfigMeta(type):
     Note:
         Parsing objects inside lists is not supported and will be returned as dictionaries.
         Parameterized types such as `list[str]` are not supported.
-        If the type annotation is another config class, do not provide a default value.
+        To nest config classes, assign an instance of the nested class to the field.
 
     Args:
         obj_path (str): A dot-separated path to an object in the YAML file that contains the class's fields.
@@ -35,7 +35,10 @@ class ConfigMeta(type):
         TypeError: If a field's value in the YAML file is not of the correct type.
     """
 
-    def __new__(cls, name, bases, attrs, *, obj_path: str = ''):
+    @classmethod
+    def __init_subclass__(cls, /, obj_path: str = '', **kwargs):
+        super().__init_subclass__(**kwargs)
+
         file_path = 'config_preview.yaml' if PREVIEW else 'config.yaml'
 
         if os.path.isfile(file_path):
@@ -51,14 +54,16 @@ class ConfigMeta(type):
             except KeyError:
                 config_data = {}
 
-        for attr, type in attrs['__annotations__'].items():
+        attrs = {key: value for key, value in vars(cls).items() if not key.startswith('__')}
+        typed_attrs = cls.__annotations__
+        untyped_attrs = {key: None for key in attrs.keys() if key not in typed_attrs}
+        types_map = {**typed_attrs, **untyped_attrs}
+
+        for attr, type in types_map.items():
             attr_path = f'{obj_path}.{attr}' if obj_path else attr
 
-            if type.__class__ is cls:
-                # If the annotation's type is ConfigMeta, it's a nested config class.
-                # Directly assign the class object to the attribute.
-                attrs[attr] = type
-            else:
+            # If the default value is a nested config class, do not overwrite it.
+            if not isinstance(attrs.get(attr), ConfigBase):
                 # If a value is provided in the YAML file, use it.
                 # Otherwise, if no default value is provided, raise an exception.
                 if attr in config_data:
@@ -66,23 +71,23 @@ class ConfigMeta(type):
                 elif attr not in attrs:
                     raise ValueError(f"no value provided for required config field '{attr_path}'")
 
-                # Check that the value is of the correct type.
-                if not isinstance(attrs[attr], type):
-                    raise TypeError(
-                        f"config field '{attr_path}' must be of type '{type.__name__}'"
-                        f", found '{attrs[attr].__class__.__name__}'"
-                    )
+            # Check that the value is of the correct type if a type hint is provided.
+            if type and not isinstance(attrs[attr], type):
+                raise TypeError(
+                    f"config field '{attr_path}' must be of type '{type.__name__}'"
+                    f", found '{attrs[attr].__class__.__name__}'"
+                )
 
-        return super().__new__(cls, name, bases, attrs)
+            setattr(cls, attr, attrs[attr])
 
 
-class _ActivityConfig(metaclass=ConfigMeta, obj_path='activity'):
+class _ActivityConfig(ConfigBase, obj_path='activity'):
     text: str = r"is 83.3% safe!"
     # 0 = playing, 1 = streaming, 2 = listening, 3 = watching
     type: int = 0
 
 
-class _GameConfig(metaclass=ConfigMeta, obj_path='game'):
+class _GameConfig(ConfigBase, obj_path='game'):
     luck_messages: list = [
         "{player} got lucky.",
         "{player} is having a good day.",
@@ -101,7 +106,7 @@ class _GameConfig(metaclass=ConfigMeta, obj_path='game'):
     ]
 
 
-class _Config(metaclass=ConfigMeta):
+class _Config(ConfigBase):
     name: str = "Russian Roulette"
     url: str = 'https://github.com/LemonPi314/russian-roulette-bot'
     color: int = 0xFF0000
@@ -112,8 +117,8 @@ class _Config(metaclass=ConfigMeta):
     )
     preview: bool = PREVIEW
     token: str = os.getenv('DISCORD_TOKEN_PREVIEW' if PREVIEW else 'DISCORD_TOKEN') or ''
-    activity: _ActivityConfig
-    game: _GameConfig
+    activity = _ActivityConfig()
+    game = _GameConfig()
 
 
-config = _Config  # pylint: disable=invalid-name
+config = _Config()
