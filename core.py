@@ -2,8 +2,8 @@ import datetime
 import sys
 
 import discord
-from discord import app_commands, Embed, Interaction
-from discord.ext.commands import Bot, Cog
+from discord import Embed, Interaction, app_commands
+from discord.ext.commands import Bot, Cog, Context, hybrid_command
 
 from config import config
 
@@ -63,13 +63,13 @@ class Core(Cog):
         embed = Embed(title=f"{config.name} Debug Info", description=description, color=config.color, url=config.url)
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command()
-    async def about(self, interaction: Interaction):
+    @hybrid_command(aliases=[''])
+    async def about(self, ctx: Context):
         """Show information about the bot."""
         with open('assets/markdown/about.md', 'r') as about_file:
             about = about_file.read()
         embed = Embed(title=config.name, description=about, color=config.color, url=config.url)
-        await interaction.response.send_message(embed=embed)
+        await ctx.send(embed=embed)
 
     @app_commands.command()
     async def rules(self, interaction: Interaction):
