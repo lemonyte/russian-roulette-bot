@@ -38,7 +38,7 @@ class Core(Cog):
         Name: {self.bot.user}
         ID: {self.bot.application_id}
         Preview: {config.preview}
-        Command prefixes: {', '.join(config.prefixes)}
+        Command prefixes: {', '.join(config.prefixes + [self.bot.user.mention])}
         URL: {config.url}
         ```
 
