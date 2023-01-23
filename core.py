@@ -60,7 +60,7 @@ class Core(Cog):
         ```
         """
         description = '\n'.join(line.strip() for line in description.splitlines())
-        embed = Embed(title=f"{config.name} Debug Info", description=description, color=config.color, url=config.url)
+        embed = Embed(title="Debug Info", description=description, color=config.color, url=config.url)
         await interaction.response.send_message(embed=embed)
 
     @hybrid_command(aliases=[''])
@@ -68,7 +68,7 @@ class Core(Cog):
         """Show information about the bot."""
         with open('assets/markdown/about.md', 'r') as about_file:
             about = about_file.read()
-        embed = Embed(title=config.name, description=about, color=config.color, url=config.url)
+        embed = Embed(title=f"About {config.name}", description=about, color=config.color, url=config.url)
         await ctx.send(embed=embed)
 
     @app_commands.command()
