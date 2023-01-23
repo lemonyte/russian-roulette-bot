@@ -1,3 +1,5 @@
+# pyright: reportOptionalMemberAccess=false
+
 import datetime
 import random
 import re
