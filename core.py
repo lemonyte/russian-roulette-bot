@@ -55,8 +55,6 @@ class Core(Cog):
         discord.py version: {discord.__version__} {discord.version_info.releaselevel}
         Cogs: {', '.join(self.bot.cogs)}
         Flags value: {self.bot.application_flags.value}
-        Shard ID: {self.bot.shard_id}
-        Shard Count: {self.bot.shard_count}
         ```
         """
         description = '\n'.join(line.strip() for line in description.splitlines())
