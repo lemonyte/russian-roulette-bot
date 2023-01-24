@@ -19,7 +19,7 @@ class NoGameStarted(Exception):
 class GameInstance:
     def __init__(
         self,
-        channel: TextChannel,
+        channel,
         players: list[User],
         info: Optional[str] = None,
         duration: Optional[str] = None,
@@ -92,13 +92,14 @@ class Game(Cog):
     async def current(self, interaction: Interaction):
         """Show information about the current game."""
         game = self.get_game_context(interaction)
-        response = (
+        description = (
             f"Players: {' '.join(player.mention for player in game.players)}\n"
             f"Info: {game.info}\n"
             f"Duration: {game.duration}\n"
-            f"Channel: {game.channel.mention}"
         )
-        embed = Embed(title="Current Game Information", description=response, color=config.color, url=config.url)
+        if hasattr(game.channel, 'mention'):
+            description += f"Channel: {game.channel.mention}"
+        embed = Embed(title="Current Game Information", description=description, color=config.color, url=config.url)
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command()
