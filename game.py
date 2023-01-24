@@ -105,12 +105,6 @@ class Game(Cog):
     async def shoot(self, interaction: Interaction, player: Optional[User] = None):
         """Pull the trigger."""
         game = self.get_game_context(interaction)
-        if interaction.channel != game.channel:
-            await interaction.response.send_message(
-                f"This game was started in the {game.channel} channel.",
-                ephemeral=True,
-            )
-            return
         if player is None:
             player = interaction.user
         if player != game.current_player:
