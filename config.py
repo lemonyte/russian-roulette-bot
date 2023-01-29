@@ -103,6 +103,36 @@ class _GameConfig(ConfigBase, obj_path='game'):
         "{player} took one for the team.",
         "{player} lost the game, and their life.",
         "{player} left their brains behind.",
+        "{player} hit a dead end.",
+        "{player} shot themselves. If this was real life you'd be dead.",
+        "RIP {player}.",
+    ]
+    luck_messages_bot: list = [
+        "Bots are too good at this game.",
+        "I *am* the game.",
+        "Did you think you could beat me?",
+    ]
+    death_messages_bot: list = [
+        "Jokes on you, robots can't die.",
+        "Did you seriously think that would work against me?",
+        "You monster.",
+    ]
+    luck_messages_betrayal: list = [
+        "{shooter} tried to shoot {player} but missed.",
+        "{shooter} chickened out and tried to shoot {player}, but the chamber was empty.",
+        "{shooter} tried to kill {player} but the gun backfired and {shooter} died.",
+        "{shooter} pointed the gun at {player}, but {player} dodged and beat up {shooter} instead.",
+    ]
+    death_messages_betrayal: list = [
+        "{shooter} murdered {player} in cold blood.",
+        "{shooter} shot {player} in the head.",
+        "{shooter} pointed the gun at {player} instead, and killed them.",
+        "{shooter} broke the rules and killed {player}.",
+        "{shooter} pulled the trigger on {player}.",
+    ]
+    timeout_messages: list = [
+        # TODO
+        "{player} took too long to decide.",
     ]
 
 
