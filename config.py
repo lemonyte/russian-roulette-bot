@@ -88,7 +88,7 @@ class _ActivityConfig(ConfigBase, obj_path='activity'):
 
 
 class _GameConfig(ConfigBase, obj_path='game'):
-    luck_messages: list = [
+    luck_responses: list = [
         "{player} got lucky.",
         "{player} is having a good day.",
         "{player} lives on to the next round.",
@@ -96,7 +96,7 @@ class _GameConfig(ConfigBase, obj_path='game'):
         "{player} rigged the game.",
         "{player} cheated death.",
     ]
-    death_messages: list = [
+    death_responses: list = [
         "{player} died.",
         "{player} wasn't lucky enough.",
         "{player} took too many chances.",
@@ -107,7 +107,7 @@ class _GameConfig(ConfigBase, obj_path='game'):
         "{player} shot themselves. If this was real life you'd be dead.",
         "RIP {player}.",
     ]
-    timeout_messages: list = [
+    timeout_responses: list = [
         "{player} took too long to decide.",
         "{player} couldn't pull the trigger.",
         "{player} wasn't brave enough.",

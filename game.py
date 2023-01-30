@@ -217,7 +217,7 @@ class ShootView(ui.View):
         self.shoot_button.label = "Timed out."
         self.shoot_button.emoji = '⌛'
         self.shoot_button.style = ButtonStyle.gray
-        response = random.choice(config.game.timeout_messages).format(player=self.game.current_player.display_name)
+        response = random.choice(config.game.timeout_responses).format(player=self.game.current_player.display_name)
         embed = Embed(
             title=f"{self.game.current_player.display_name}'s Turn",
             description=response,
@@ -261,13 +261,13 @@ class ShootView(ui.View):
             button.label = "Bang!"
             button.emoji = '☠'
             button.style = ButtonStyle.red
-            response = random.choice(config.game.death_messages).format(player=player.display_name)
+            response = random.choice(config.game.death_responses).format(player=player.display_name)
             self.game.stop()
         else:
             button.label = "*Click*"
             button.emoji = '✅'
             button.style = ButtonStyle.green
-            response = random.choice(config.game.luck_messages).format(player=player.display_name)
+            response = random.choice(config.game.luck_responses).format(player=player.display_name)
             self.game.next()
         file = File(f'assets/images/frame_{chamber}.png', f'frame_{chamber}.png')
         embed = Embed(
