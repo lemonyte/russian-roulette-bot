@@ -217,7 +217,7 @@ class ShootView(ui.View):
         self.shoot_button.label = "Timed out."
         self.shoot_button.emoji = '⌛'
         self.shoot_button.style = ButtonStyle.gray
-        response = f"{self.game.current_player.display_name} couldn't pull the trigger and was removed."
+        response = random.choice(config.game.timeout_messages).format(player=self.game.current_player.display_name)
         embed = Embed(
             title=f"{self.game.current_player.display_name}'s Turn",
             description=response,
