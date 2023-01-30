@@ -108,8 +108,9 @@ class _GameConfig(ConfigBase, obj_path='game'):
         "RIP {player}.",
     ]
     timeout_messages: list = [
-        # TODO
         "{player} took too long to decide.",
+        "{player} couldn't pull the trigger.",
+        "{player} wasn't brave enough.",
     ]
 
 
