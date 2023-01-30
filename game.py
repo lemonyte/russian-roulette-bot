@@ -100,9 +100,7 @@ class StartGameView(ui.View):
     async def send_embed(self):
         embed = Embed(
             title="Starting Game",
-            description=(
-                f"Click the Menu button below to join the game.\nPlayers joined: {len(self.game.players)}"
-            ),
+            description=f"Click the Menu button below to join the game.\nPlayers joined: {len(self.game.players)}",
             color=config.color,
             url=config.url,
         )
@@ -119,9 +117,7 @@ class StartGameView(ui.View):
         if title is None:
             title = "Starting Game"
         if description is None:
-            description = (
-                f"Click the Menu button below to join the game.\nPlayers joined: {len(self.game.players)}"
-            )
+            description = f"Click the Menu button below to join the game.\nPlayers joined: {len(self.game.players)}"
         embed = Embed(
             title=title,
             description=description,
@@ -343,9 +339,7 @@ class Game(Cog):
     async def info(self, interaction: Interaction):
         """Show information about the current game."""
         game = self.get_game_context(interaction)
-        description = (
-            f"Players: {' '.join(player.mention for player in game.players)}\n"
-        )
+        description = f"Players: {' '.join(player.mention for player in game.players)}\n"
         if hasattr(game.channel, 'mention'):
             description += f"Channel: {game.channel.mention}"
         embed = Embed(title="Current Game Information", description=description, color=config.color, url=config.url)
