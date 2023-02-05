@@ -116,7 +116,7 @@ class _GameConfig(ConfigBase, obj_path='game'):
 
 class _Config(ConfigBase):
     name: str = "Russian Roulette"
-    url: str = 'https://github.com/LemonPi314/russian-roulette-bot'
+    url: str = 'https://github.com/lemonyte/russian-roulette-bot'
     color: int = 0xFF0000
     prefixes: list = ['rr', 'russian-roulette']
     invite: str = (
