@@ -252,7 +252,6 @@ class ShootView(ui.View):
             raise GameError("It's not your turn!")
         button.disabled = True
         if self.game.stopped.is_set():
-            self.stop()
             await interaction.response.edit_message(view=self)
             await interaction.followup.send("Game has been stopped.", ephemeral=True)
             return
