@@ -262,6 +262,7 @@ class ShootView(View):
         if self.game.stopped.is_set():
             await interaction.response.edit_message(view=self)
             await interaction.followup.send("Game has been stopped.", ephemeral=True)
+            await self.on_timeout()
             return
         chamber = random.randint(1, 6)
         if chamber == 1:
