@@ -166,8 +166,11 @@ class GameMenuView(View):
         if interaction.user != self.parent.game.creator:
             self.start_stop_button.disabled = True
 
-    async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item, /):
-        raise error
+    def stop(self):
+        self.join_leave_button.disabled = True
+        self.start_stop_button.disabled = True
+        self.parent.stop()
+        super().stop()
 
     @ui.button(label="Join Game", style=ButtonStyle.blurple, emoji="📥")
     async def join_leave_button(self, interaction: Interaction, button: ui.Button):
@@ -183,6 +186,8 @@ class GameMenuView(View):
             self.start_stop_button.disabled = True
         else:
             self.start_stop_button.disabled = False
+        if self.parent.game.stopped.is_set():
+            self.stop()
         await interaction.response.edit_message(view=self)
         await self.parent.update_embed(view=self.parent)
 
@@ -195,10 +200,8 @@ class GameMenuView(View):
             button.emoji = "🛑"
             title = "Game Started"
         else:
-            self.parent.game.stop()
+            self.stop()
             button.disabled = True
-            self.join_leave_button.disabled = True
-            self.parent.stop()
             title = "Game Stopped"
         await interaction.response.edit_message(view=self)
         await self.parent.update_embed(title=title, view=self.parent)
@@ -219,7 +222,7 @@ class ShootView(View):
         if self.message is None:
             return
         self.shoot_button.disabled = True
-        self.shoot_button.label = "Timed out."
+        self.shoot_button.label = "Timed out"
         self.shoot_button.emoji = "⌛"
         self.shoot_button.style = ButtonStyle.gray
         response = random.choice(config.game.timeout_responses).format(player=self.game.current_player.display_name)
