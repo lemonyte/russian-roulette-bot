@@ -42,6 +42,7 @@ class GameInstance:
         self.started.set()
 
     def stop(self):
+        self.started.set()
         self.stopped.set()
 
     def next(self):
