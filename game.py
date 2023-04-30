@@ -33,6 +33,7 @@ class GameInstance:
         self.players = players
         self.started = asyncio.Event()
         self.stopped = asyncio.Event()
+        self._current_player = creator
 
     def start(self):
         if len(self.players) <= 0:
@@ -62,8 +63,9 @@ class GameInstance:
     def current_player(self):
         if len(self.players) <= 0:
             self.stop()
-            raise GameError("No players left in game.")
-        return self.players[0]
+        else:
+            self._current_player = self.players[0]
+        return self._current_player
 
 
 class StartGameView(ui.View):
