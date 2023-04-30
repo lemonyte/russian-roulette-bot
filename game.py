@@ -65,7 +65,17 @@ class GameInstance:
             self.current_player = self.players[0]
 
 
-class StartGameView(ui.View):
+class View(ui.View):
+    async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item, /):
+        message = ":x: " + str(error)
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
+        return await super().on_error(interaction, error, item)
+
+
+class StartGameView(View):
     def __init__(self, interaction: Interaction, *, timeout: Optional[float] = 1800):
         super().__init__(timeout=timeout)
         self.interaction = interaction
@@ -79,9 +89,6 @@ class StartGameView(ui.View):
         self.menu_button.disabled = True
         self.game.stop()
         super().stop()
-
-    async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item, /):
-        raise error
 
     async def on_timeout(self):
         self.stop()
@@ -126,7 +133,7 @@ class StartGameView(ui.View):
         await interaction.response.send_message("Game Menu", view=menu, ephemeral=True)
 
 
-class GameMenuView(ui.View):
+class GameMenuView(View):
     def __init__(
         self,
         parent: StartGameView,
@@ -197,7 +204,7 @@ class GameMenuView(ui.View):
         await self.parent.update_embed(title=title, view=self.parent)
 
 
-class ShootView(ui.View):
+class ShootView(View):
     def __init__(self, game: GameInstance, *, timeout: Optional[float] = 30):
         super().__init__(timeout=timeout)
         self.game = game
@@ -207,9 +214,6 @@ class ShootView(ui.View):
     def stop(self):
         self.finished.set()
         super().stop()
-
-    async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item, /):
-        raise error
 
     async def on_timeout(self):
         if self.message is None:
