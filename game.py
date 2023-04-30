@@ -33,11 +33,12 @@ class GameInstance:
         self.players = players
         self.started = asyncio.Event()
         self.stopped = asyncio.Event()
-        self._current_player = creator
+        self.current_player = creator
 
     def start(self):
         if len(self.players) <= 0:
             raise GameError("No players left in game.")
+        self.current_player = self.players[0]
         self.started.set()
 
     def stop(self):
@@ -48,6 +49,7 @@ class GameInstance:
             self.stop()
             raise GameError("No players left in game.")
         self.players.append(self.players.pop(0))
+        self.current_player = self.players[0]
 
     def add_player(self, player: Union[User, Member]):
         if player not in self.players:
@@ -58,14 +60,8 @@ class GameInstance:
             self.players.remove(player)
         if len(self.players) <= 0 and self.started.is_set():
             self.stop()
-
-    @property
-    def current_player(self):
-        if len(self.players) <= 0:
-            self.stop()
-        else:
-            self._current_player = self.players[0]
-        return self._current_player
+        if len(self.players) > 0:
+            self.current_player = self.players[0]
 
 
 class StartGameView(ui.View):
