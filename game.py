@@ -66,11 +66,6 @@ class GameInstance:
         return self.players[0]
 
 
-class View(ui.View):
-    async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item, /):
-        raise error
-
-
 class StartGameView(ui.View):
     def __init__(self, interaction: Interaction, *, timeout: Optional[float] = 1800):
         super().__init__(timeout=timeout)
