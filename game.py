@@ -308,12 +308,11 @@ class Game(Cog):
         """Start a new game."""
         if interaction.channel_id in self.games:
             raise GameError("A game is already in progress.")
-
         view = StartGameView(interaction)
-        await view.send_embed()
-        await view.game.started.wait()
         game = view.game
         self.games[game.channel.id] = game
+        await view.send_embed()
+        await view.game.started.wait()
         try:
             while not game.stopped.is_set():
                 view = ShootView(game)
