@@ -121,7 +121,7 @@ class StartGameView(ui.View):
         )
         await self.interaction.edit_original_response(embed=embed, view=view, **kwargs)
 
-    @ui.button(label="Menu")
+    @ui.button(label="Menu", style=ButtonStyle.blurple, emoji="📑")
     async def menu_button(self, interaction: Interaction, button: ui.Button):  # pylint: disable=unused-argument
         menu = GameMenuView(self, interaction)
         await interaction.response.send_message("Game Menu", view=menu, ephemeral=True)
@@ -140,14 +140,18 @@ class GameMenuView(ui.View):
 
         if interaction.user in self.parent.game.players:
             self.join_leave_button.label = "Leave Game"
+            self.join_leave_button.emoji = "📤"
         else:
             self.join_leave_button.label = "Join Game"
+            self.join_leave_button.emoji = "📥"
 
         if self.parent.game.started.is_set():
             self.start_stop_button.label = "Stop Game"
             self.start_stop_button.style = ButtonStyle.red
+            self.start_stop_button.emoji = "🛑"
         else:
             self.start_stop_button.label = "Start Game"
+            self.start_stop_button.emoji = "✅"
 
         if self.parent.game.stopped.is_set():
             self.join_leave_button.disabled = True
@@ -159,23 +163,26 @@ class GameMenuView(ui.View):
     async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item, /):
         raise error
 
-    @ui.button(label="Join Game", style=ButtonStyle.blurple)
+    @ui.button(label="Join Game", style=ButtonStyle.blurple, emoji="📥")
     async def join_leave_button(self, interaction: Interaction, button: ui.Button):
         if interaction.user not in self.parent.game.players:
             self.parent.game.add_player(interaction.user)
             button.label = "Leave Game"
+            button.emoji = "📤"
         else:
             self.parent.game.remove_player(interaction.user)
             button.label = "Join Game"
+            button.emoji = "📥"
         await interaction.response.edit_message(view=self)
         await self.parent.update_embed(view=self.parent)
 
-    @ui.button(label="Start Game", style=ButtonStyle.green, row=1)
+    @ui.button(label="Start Game", style=ButtonStyle.green, emoji="✅", row=1)
     async def start_stop_button(self, interaction: Interaction, button: ui.Button):
         if not self.parent.game.started.is_set():
             self.parent.game.start()
             button.label = "Stop Game"
             button.style = ButtonStyle.red
+            button.emoji = "🛑"
             title = "Game Started"
         else:
             self.parent.game.stop()
