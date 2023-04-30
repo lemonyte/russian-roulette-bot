@@ -296,7 +296,6 @@ class Game(Cog):
             await interaction.followup.send(message, ephemeral=True)
         else:
             await interaction.response.send_message(message, ephemeral=True)
-        return await super().cog_app_command_error(interaction, error)
 
     def get_game_context(self, interaction: Interaction) -> GameInstance:
         if interaction.channel_id in self.games:
