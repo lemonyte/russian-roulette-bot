@@ -236,7 +236,7 @@ class ShootView(ui.View):
     async def send_embed(self):
         embed = Embed(
             title=f"{self.game.current_player.display_name}'s Turn",
-            description="Click the button below to shoot.\nYou have 30 seconds.",
+            description=f"Click the button below to shoot.\nYou have {self.timeout} seconds.",
             color=config.color,
             url=config.url,
         )
