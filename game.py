@@ -173,6 +173,10 @@ class GameMenuView(ui.View):
             self.parent.game.remove_player(interaction.user)
             button.label = "Join Game"
             button.emoji = "📥"
+        if len(self.parent.game.players) <= 0:
+            self.start_stop_button.disabled = True
+        else:
+            self.start_stop_button.disabled = False
         await interaction.response.edit_message(view=self)
         await self.parent.update_embed(view=self.parent)
 
