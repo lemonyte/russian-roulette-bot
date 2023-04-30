@@ -1,7 +1,7 @@
 # pyright: reportOptionalMemberAccess=false
 
-import datetime
 import sys
+from datetime import datetime, timedelta
 
 import discord
 from discord import Embed, Interaction, app_commands
@@ -13,7 +13,7 @@ from config import config
 class Core(Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.start_time = datetime.datetime.utcnow()
+        self.start_time = datetime.utcnow()
 
     @Cog.listener()
     async def on_ready(self):
@@ -32,8 +32,7 @@ class Core(Cog):
     @app_commands.command()
     async def debug(self, interaction: Interaction):
         """Show debug information."""
-        uptime = datetime.datetime.utcnow() - self.start_time
-        uptime = datetime.timedelta(seconds=int(uptime.total_seconds()))
+        uptime = timedelta(seconds=int((datetime.utcnow() - self.start_time).total_seconds()))
         description = f"""
         **General**
         ```
