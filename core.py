@@ -58,14 +58,14 @@ class Core(Cog):
         Flags value: {self.bot.application_flags.value}
         ```
         """
-        description = '\n'.join(line.strip() for line in description.splitlines())
+        description = "\n".join(line.strip() for line in description.splitlines())
         embed = Embed(title="Debug Info", description=description, color=config.color, url=config.url)
         await interaction.response.send_message(embed=embed)
 
-    @hybrid_command(aliases=[''])
+    @hybrid_command(aliases=[""])
     async def about(self, ctx: Context):
         """Show information about the bot."""
-        with open('assets/markdown/about.md', 'r') as about_file:
+        with open("assets/markdown/about.md", "r") as about_file:
             about = about_file.read()
         embed = Embed(title=f"About {config.name}", description=about, color=config.color, url=config.url)
         await ctx.send(embed=embed)
@@ -73,7 +73,7 @@ class Core(Cog):
     @app_commands.command()
     async def rules(self, interaction: Interaction):
         """Show the rules of the game."""
-        with open('assets/markdown/rules.md', 'r') as rules_file:
+        with open("assets/markdown/rules.md", "r") as rules_file:
             rules = rules_file.read()
         embed = Embed(title=f"{config.name} Rules", description=rules, color=config.color, url=config.url)
         await interaction.response.send_message(embed=embed)

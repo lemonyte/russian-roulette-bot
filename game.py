@@ -219,7 +219,7 @@ class ShootView(ui.View):
             return
         self.shoot_button.disabled = True
         self.shoot_button.label = "Timed out."
-        self.shoot_button.emoji = '⌛'
+        self.shoot_button.emoji = "⌛"
         self.shoot_button.style = ButtonStyle.gray
         response = random.choice(config.game.timeout_responses).format(player=self.game.current_player.display_name)
         embed = Embed(
@@ -228,7 +228,7 @@ class ShootView(ui.View):
             color=config.color,
             url=config.url,
         )
-        embed.set_thumbnail(url='attachment://spin.gif')
+        embed.set_thumbnail(url="attachment://spin.gif")
         await self.message.edit(embed=embed, view=self)
         self.game.remove_player(self.game.current_player)
         self.stop()
@@ -240,14 +240,14 @@ class ShootView(ui.View):
             color=config.color,
             url=config.url,
         )
-        embed.set_thumbnail(url='attachment://spin.gif')
+        embed.set_thumbnail(url="attachment://spin.gif")
         self.message = await self.game.channel.send(
             embed=embed,
             view=self,
-            file=File('assets/images/spin.gif', 'spin.gif'),
+            file=File("assets/images/spin.gif", "spin.gif"),
         )
 
-    @ui.button(label="Shoot", style=ButtonStyle.blurple, emoji='🔫')
+    @ui.button(label="Shoot", style=ButtonStyle.blurple, emoji="🔫")
     async def shoot_button(self, interaction: Interaction, button: ui.Button):
         if self.message is None:
             return
@@ -263,24 +263,24 @@ class ShootView(ui.View):
         chamber = random.randint(1, 6)
         if chamber == 1:
             button.label = "Bang!"
-            button.emoji = '☠'
+            button.emoji = "☠"
             button.style = ButtonStyle.red
             response = random.choice(config.game.death_responses).format(player=player.display_name)
             self.game.stop()
         else:
             button.label = "*Click*"
-            button.emoji = '✅'
+            button.emoji = "✅"
             button.style = ButtonStyle.green
             response = random.choice(config.game.luck_responses).format(player=player.display_name)
             self.game.next()
-        file = File(f'assets/images/frame_{chamber}.png', f'frame_{chamber}.png')
+        file = File(f"assets/images/frame_{chamber}.png", f"frame_{chamber}.png")
         embed = Embed(
             title=f"{player.display_name}'s Turn",
             description=response,
             color=config.color,
             url=config.url,
         )
-        embed.set_thumbnail(url=f'attachment://frame_{chamber}.png')
+        embed.set_thumbnail(url=f"attachment://frame_{chamber}.png")
         await interaction.response.edit_message(embed=embed, view=self, attachments=[file])
         self.stop()
 
@@ -348,7 +348,7 @@ class Game(Cog):
         """Show information about the current game."""
         game = self.get_game_context(interaction)
         description = f"Players: {' '.join(player.mention for player in game.players)}\n"
-        if hasattr(game.channel, 'mention'):
+        if hasattr(game.channel, "mention"):
             description += f"Channel: {game.channel.mention}"
         embed = Embed(title="Current Game Information", description=description, color=config.color, url=config.url)
         await interaction.response.send_message(embed=embed)
@@ -356,7 +356,7 @@ class Game(Cog):
     @app_commands.command()
     async def gif(self, interaction: Interaction):
         """Send a GIF version of the game for screenshotting."""
-        await interaction.response.send_message(file=File('assets/images/spin.gif'))
+        await interaction.response.send_message(file=File("assets/images/spin.gif"))
 
 
 async def setup(bot: Bot):

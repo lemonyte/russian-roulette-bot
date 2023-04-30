@@ -10,7 +10,7 @@ try:
 except ModuleNotFoundError:
     pass
 
-PREVIEW = '--preview' in sys.argv or '-p' in sys.argv
+PREVIEW = "--preview" in sys.argv or "-p" in sys.argv
 
 
 class ConfigBase:
@@ -36,31 +36,31 @@ class ConfigBase:
     """
 
     @classmethod
-    def __init_subclass__(cls, /, obj_path: str = '', **kwargs):
+    def __init_subclass__(cls, /, obj_path: str = "", **kwargs):
         super().__init_subclass__(**kwargs)
 
-        file_path = 'config_preview.yaml' if PREVIEW else 'config.yaml'
+        file_path = "config_preview.yaml" if PREVIEW else "config.yaml"
 
         if os.path.isfile(file_path):
-            with open(file_path, 'r') as config_file:
+            with open(file_path, "r") as config_file:
                 config_data = yaml.safe_load(config_file)
         else:
             config_data = {}
 
         if obj_path:
             try:
-                for path in obj_path.split('.'):
+                for path in obj_path.split("."):
                     config_data = config_data[path]
             except KeyError:
                 config_data = {}
 
-        attrs = {key: value for key, value in vars(cls).items() if not key.startswith('__')}
+        attrs = {key: value for key, value in vars(cls).items() if not key.startswith("__")}
         typed_attrs = cls.__annotations__
         untyped_attrs = {key: None for key in attrs.keys() if key not in typed_attrs}
         types_map = {**typed_attrs, **untyped_attrs}
 
         for attr, type in types_map.items():
-            attr_path = f'{obj_path}.{attr}' if obj_path else attr
+            attr_path = f"{obj_path}.{attr}" if obj_path else attr
 
             # If the default value is a nested config class, do not overwrite it.
             if not isinstance(attrs.get(attr), ConfigBase):
@@ -81,13 +81,13 @@ class ConfigBase:
             setattr(cls, attr, attrs[attr])
 
 
-class _ActivityConfig(ConfigBase, obj_path='activity'):
+class _ActivityConfig(ConfigBase, obj_path="activity"):
     text: str = r"is 83.3% safe!"
     # 0 = playing, 1 = streaming, 2 = listening, 3 = watching
     type: int = 0
 
 
-class _GameConfig(ConfigBase, obj_path='game'):
+class _GameConfig(ConfigBase, obj_path="game"):
     luck_responses: list = [
         "{player} got lucky.",
         "{player} is having a good day.",
@@ -116,15 +116,15 @@ class _GameConfig(ConfigBase, obj_path='game'):
 
 class _Config(ConfigBase):
     name: str = "Russian Roulette"
-    url: str = 'https://github.com/lemonyte/russian-roulette-bot'
+    url: str = "https://github.com/lemonyte/russian-roulette-bot"
     color: int = 0xFF0000
-    prefixes: list = ['rr', 'russian-roulette']
+    prefixes: list = ["rr", "russian-roulette"]
     invite: str = (
-        r'https://discord.com/api/oauth2/authorize?client_id=901284333770383440'
-        r'&permissions=137506374720&scope=applications.commands%20bot'
+        r"https://discord.com/api/oauth2/authorize?client_id=901284333770383440"
+        r"&permissions=137506374720&scope=applications.commands%20bot"
     )
     preview: bool = PREVIEW
-    token: str = os.getenv('DISCORD_TOKEN_PREVIEW' if PREVIEW else 'DISCORD_TOKEN') or ''
+    token: str = os.getenv("DISCORD_TOKEN_PREVIEW" if PREVIEW else "DISCORD_TOKEN") or ""
     activity = _ActivityConfig()
     game = _GameConfig()
 
