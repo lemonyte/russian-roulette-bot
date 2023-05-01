@@ -76,7 +76,8 @@ class View(ui.View):
 
 
 class StartGameView(View):
-    def __init__(self, interaction: Interaction, *, timeout: Optional[float] = 1800):
+    # Interaction tokens are valid for 15 minutes (900 seconds).
+    def __init__(self, interaction: Interaction, *, timeout: Optional[float] = 890):
         super().__init__(timeout=timeout)
         self.interaction = interaction
         self.game = GameInstance(
