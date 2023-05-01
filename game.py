@@ -163,7 +163,7 @@ class GameMenuView(View):
             self.join_leave_button.disabled = True
             self.start_stop_button.disabled = True
 
-        if interaction.user != self.parent.game.creator:
+        if interaction.user != self.parent.game.creator or len(self.parent.game.players) <= 0:
             self.start_stop_button.disabled = True
 
     def stop(self):
