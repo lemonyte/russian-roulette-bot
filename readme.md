@@ -10,7 +10,7 @@ Thanks to [BranStork](https://github.com/BranStork) for the inspiration.
 
 ### Quick Start
 
-Add the bot to your chosen Discord guild using either [this link](https://discord.com/api/oauth2/authorize?client_id=901284333770383440&permissions=534925208641&scope=bot%20applications.commands) or the "Add to Server" button in the bot's profile in Discord. Mention the bot to receive some basic information including the default prefixes, which are `rr`, `russian-roulette`, and the bot's mention.
+Add the bot to your chosen Discord guild using either [this link](https://discord.com/api/oauth2/authorize?client_id=901284333770383440&permissions=412384282688&scope=applications.commands%20bot) or the "Add to Server" button in the bot's profile in Discord. Mention the bot to receive some basic information including the default prefixes, which are `rr`, `russian-roulette`, and the bot's mention.
 
 ### Channel Binding
 
