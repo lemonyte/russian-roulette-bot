@@ -93,39 +93,44 @@ class StartGameView(View):
 
     async def on_timeout(self):
         self.stop()
-        await self.update_embed(
+        embed = self.create_embed(
             title="Game Timed Out",
             description="Use </start:1045533617910206515> to start a new game.",
-            view=self,
         )
+        await self.update_embed(embed)
 
-    async def send_embed(self):
-        embed = Embed(
-            title="Starting Game",
-            description=f"Click the Menu button below to join the game.\nPlayers joined: {len(self.game.players)}",
-            color=config.color,
-            url=config.url,
-        )
-        await self.interaction.response.send_message(embed=embed, view=self)
-
-    async def update_embed(
+    def create_embed(
         self,
         *,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        view: Optional[ui.View] = None,
-        **kwargs,
-    ):
+    ) -> Embed:
         if title is None:
             title = "Starting Game"
         if description is None:
-            description = f"Click the Menu button below to join the game.\nPlayers joined: {len(self.game.players)}"
+            description = "Click the Menu button below to join the game."
         embed = Embed(
             title=title,
             description=description,
             color=config.color,
             url=config.url,
         )
+        return embed
+
+    async def send_embed(self):
+        await self.interaction.response.send_message(embed=self.create_embed(), view=self)
+
+    async def update_embed(
+        self,
+        embed: Optional[Embed] = None,
+        *,
+        view: Optional[ui.View] = None,
+        **kwargs,
+    ):
+        if embed is None:
+            embed = self.create_embed()
+        if view is None:
+            view = self
         await self.interaction.edit_original_response(embed=embed, view=view, **kwargs)
 
     @ui.button(label="Menu", style=ButtonStyle.blurple, emoji="📑")
@@ -190,7 +195,7 @@ class GameMenuView(View):
         if self.parent.game.stopped.is_set():
             self.stop()
         await interaction.response.edit_message(view=self)
-        await self.parent.update_embed(view=self.parent)
+        await self.parent.update_embed()
 
     @ui.button(label="Start Game", style=ButtonStyle.green, emoji="✅", row=1)
     async def start_stop_button(self, interaction: Interaction, button: ui.Button):
@@ -205,7 +210,7 @@ class GameMenuView(View):
             button.disabled = True
             title = "Game Stopped"
         await interaction.response.edit_message(view=self)
-        await self.parent.update_embed(title=title, view=self.parent)
+        await self.parent.update_embed(self.parent.create_embed(title=title))
 
 
 class ShootView(View):
