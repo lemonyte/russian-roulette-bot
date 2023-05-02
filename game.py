@@ -115,6 +115,10 @@ class StartGameView(View):
             color=config.color,
             url=config.url,
         )
+        embed.add_field(
+            name="Players",
+            value="\n".join(player.mention for player in self.game.players),
+        )
         return embed
 
     async def send_embed(self):
