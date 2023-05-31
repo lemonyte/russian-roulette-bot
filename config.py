@@ -124,7 +124,7 @@ class _Config(ConfigBase):
         r"&permissions=412384282688&scope=applications.commands%20bot"
     )
     preview: bool = PREVIEW
-    token: str = os.getenv("DISCORD_TOKEN_PREVIEW" if PREVIEW else "DISCORD_TOKEN") or ""
+    token: str = os.getenv("DISCORD_TOKEN_PREVIEW" if PREVIEW else "DISCORD_TOKEN", "")
     activity = _ActivityConfig()
     game = _GameConfig()
 
