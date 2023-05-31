@@ -1,17 +1,9 @@
 import asyncio
 import random
-from typing import Optional, Union
+from typing import Optional, Sequence
 
-from discord import (
-    ButtonStyle,
-    Embed,
-    File,
-    Interaction,
-    Member,
-    User,
-    app_commands,
-    ui,
-)
+from discord import ButtonStyle, Embed, File, Interaction, app_commands, ui
+from discord.abc import User
 from discord.ext.commands import Bot, Cog
 
 from config import config
@@ -22,10 +14,10 @@ class GameError(Exception):
 
 
 class GameInstance:
-    def __init__(self, channel, creator: Union[User, Member], players: list[Union[User, Member]]):
+    def __init__(self, channel, creator: User, players: Sequence[User]):
         self.channel = channel
         self.creator = creator
-        self.players = players
+        self.players = list(players)
         self.current_player = creator
         self.started = asyncio.Event()
         self.stopped = asyncio.Event()
@@ -47,11 +39,11 @@ class GameInstance:
         self.players.append(self.players.pop(0))
         self.current_player = self.players[0]
 
-    def add_player(self, player: Union[User, Member]):
+    def add_player(self, player: User):
         if player not in self.players:
             self.players.append(player)
 
-    def remove_player(self, player: Union[User, Member]):
+    def remove_player(self, player: User):
         if player in self.players:
             self.players.remove(player)
         if len(self.players) <= 0 and self.started.is_set():
