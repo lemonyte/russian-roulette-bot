@@ -22,18 +22,13 @@ class GameError(Exception):
 
 
 class GameInstance:
-    def __init__(
-        self,
-        channel,
-        creator: Union[User, Member],
-        players: list[Union[User, Member]],
-    ):
+    def __init__(self, channel, creator: Union[User, Member], players: list[Union[User, Member]]):
         self.channel = channel
         self.creator = creator
         self.players = players
+        self.current_player = creator
         self.started = asyncio.Event()
         self.stopped = asyncio.Event()
-        self.current_player = creator
 
     def start(self):
         if len(self.players) <= 0:
@@ -99,12 +94,7 @@ class StartGameView(View):
         )
         await self.update_embed(embed)
 
-    def create_embed(
-        self,
-        *,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-    ) -> Embed:
+    def create_embed(self, *, title: Optional[str] = None, description: Optional[str] = None) -> Embed:
         if title is None:
             title = "Starting Game"
         if description is None:
@@ -124,13 +114,7 @@ class StartGameView(View):
     async def send_embed(self):
         await self.interaction.response.send_message(embed=self.create_embed(), view=self)
 
-    async def update_embed(
-        self,
-        embed: Optional[Embed] = None,
-        *,
-        view: Optional[ui.View] = None,
-        **kwargs,
-    ):
+    async def update_embed(self, embed: Optional[Embed] = None, *, view: Optional[ui.View] = None, **kwargs):
         if embed is None:
             embed = self.create_embed()
         if view is None:
@@ -144,23 +128,15 @@ class StartGameView(View):
 
 
 class GameMenuView(View):
-    def __init__(
-        self,
-        parent: StartGameView,
-        interaction: Interaction,
-        *,
-        timeout: Optional[float] = 180,
-    ):
+    def __init__(self, parent: StartGameView, interaction: Interaction, *, timeout: Optional[float] = 180):
         super().__init__(timeout=timeout)
         self.parent = parent
-
         if interaction.user in self.parent.game.players:
             self.join_leave_button.label = "Leave Game"
             self.join_leave_button.emoji = "📤"
         else:
             self.join_leave_button.label = "Join Game"
             self.join_leave_button.emoji = "📥"
-
         if self.parent.game.started.is_set():
             self.start_stop_button.label = "Stop Game"
             self.start_stop_button.style = ButtonStyle.red
@@ -168,11 +144,9 @@ class GameMenuView(View):
         else:
             self.start_stop_button.label = "Start Game"
             self.start_stop_button.emoji = "✅"
-
         if self.parent.game.stopped.is_set():
             self.join_leave_button.disabled = True
             self.start_stop_button.disabled = True
-
         if interaction.user != self.parent.game.creator or len(self.parent.game.players) <= 0:
             self.start_stop_button.disabled = True
 
