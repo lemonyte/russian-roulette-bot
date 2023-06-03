@@ -2,6 +2,7 @@ import asyncio
 import random
 from typing import Optional, Sequence
 
+from deta import Base
 from discord import ButtonStyle, Embed, File, Interaction, app_commands, ui
 from discord.abc import User
 from discord.ext.commands import Bot, Cog
@@ -21,6 +22,42 @@ class GameInstance:
         self.current_player = creator
         self.started = asyncio.Event()
         self.stopped = asyncio.Event()
+
+    @classmethod
+    def from_dict(cls, data: dict, bot: Bot):
+        try:
+            channel = bot.get_channel(data["channel"])
+            creator = bot.get_user(data["creator"])
+            players = [bot.get_user(id) for id in data["players"]]
+            current_player = bot.get_user(data["current_player"])
+            started = data["started"]
+            stopped = data["stopped"]
+        except KeyError as exc:
+            raise ValueError("failed to parse game instance from data") from exc
+        if not (channel and creator and current_player):
+            raise ValueError("failed to parse game instance from data")
+        players = [player for player in players if player]
+        game = GameInstance(
+            channel=channel,
+            creator=creator,
+            players=players,
+        )
+        game.current_player = current_player
+        if started:
+            game.started.set()
+        if stopped:
+            game.stopped.set()
+        return game
+
+    def to_dict(self) -> dict:
+        return {
+            "channel": self.channel.id,
+            "creator": self.creator.id,
+            "players": [player.id for player in self.players],
+            "current_player": self.current_player.id,
+            "started": self.started.is_set(),
+            "stopped": self.stopped.is_set(),
+        }
 
     def start(self):
         if len(self.players) <= 0:
@@ -50,6 +87,22 @@ class GameInstance:
             self.stop()
         if len(self.players) > 0:
             self.current_player = self.players[0]
+
+
+class GameDB:
+    def __init__(self, bot: Bot):
+        self.bot = bot
+        self._db = Base("games_preview" if config.preview else "games")
+
+    def get(self, id: int) -> Optional[GameInstance]:
+        return GameInstance.from_dict(self._db.get(str(id)), self.bot)  # type: ignore
+
+    def put(self, game: GameInstance) -> str:
+        self._db.insert(game.to_dict(), key=str(game.channel.id), expire_in=15 * 60)
+        return game.channel.id
+
+    def delete(self, id: int):
+        self._db.delete(str(id))
 
 
 class View(ui.View):
@@ -268,7 +321,7 @@ class ShootView(View):
 class Game(Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.games = {}
+        self.games = GameDB(self.bot)
 
     async def cog_app_command_error(self, interaction: Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CommandInvokeError):
@@ -282,19 +335,23 @@ class Game(Cog):
             await interaction.response.send_message(message, ephemeral=True)
 
     def get_game_context(self, interaction: Interaction) -> GameInstance:
-        if interaction.channel_id in self.games:
-            game = self.games[interaction.channel_id]
+        if interaction.channel_id is None:
+            raise ValueError("channel id must not be None")
+        game = self.games.get(interaction.channel_id)
+        if game:
             return game
         raise GameError("No game has been started yet. Use </start:1045533617910206515> to start a new game.")
 
     @app_commands.command()
     async def start(self, interaction: Interaction):
         """Start a new game."""
-        if interaction.channel_id in self.games:
+        if interaction.channel_id is None:
+            raise ValueError("channel id must not be None")
+        if self.games.get(interaction.channel_id):
             raise GameError("A game is already in progress.")
         view = StartGameView(interaction)
         game = view.game
-        self.games[game.channel.id] = game
+        self.games.put(game)
         await view.send_embed()
         await view.game.started.wait()
         try:
@@ -310,15 +367,14 @@ class Game(Cog):
             )
             await game.channel.send(embed=embed)
         finally:
-            if game.channel.id in self.games:
-                del self.games[game.channel.id]
+            self.games.delete(game.channel.id)
 
     @app_commands.command()
     async def stop(self, interaction: Interaction):
         """Stop the current game."""
         game = self.get_game_context(interaction)
         game.stop()
-        del self.games[game.channel.id]
+        self.games.delete(game.channel.id)
         await interaction.response.send_message("Stopped the current game.")
 
     @app_commands.command()
