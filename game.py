@@ -32,7 +32,7 @@ class GameInstance:
             current_player = bot.get_user(data["current_player"])
             started = data["started"]
             stopped = data["stopped"]
-        except KeyError as exc:
+        except (KeyError, TypeError) as exc:
             raise ValueError("failed to parse game instance from data") from exc
         if not (channel and creator and current_player):
             raise ValueError("failed to parse game instance from data")
@@ -95,7 +95,10 @@ class GameDB:
         self._db = Base("games_preview" if config.preview else "games")
 
     def get(self, id: int) -> Optional[GameInstance]:
-        return GameInstance.from_dict(self._db.get(str(id)), self.bot)  # type: ignore
+        data = self._db.get(str(id))
+        if data is not None:
+            return GameInstance.from_dict(data, self.bot)  # type: ignore
+        return data
 
     def put(self, game: GameInstance) -> str:
         self._db.insert(game.to_dict(), key=str(game.channel.id), expire_in=15 * 60)
