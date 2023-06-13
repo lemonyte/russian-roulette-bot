@@ -4,6 +4,24 @@ A Discord bot to play virtual Russian Roulette with your friends.
 
 Thanks to [BranStork](https://github.com/BranStork) for the inspiration.
 
+## Roadmap
+
+I am currently in the process of rewriting this bot for several reasons:
+
+- Discord introduced slash commands as the new standard for bot commands, and traditional commands require a priviledged intent
+- The bot has been added to 75 servers, in order to keep expanding it must pass a verification process
+- To pass the aforementioned verification process, it would be beneficial to move hosting from my personal computer to a cloud service
+- Since I don't have any funds to pay for a cloud service, the only viable option is a free serverless platform
+- To work on a serverless platform, the bot must be able to run in a stateless environment
+
+Below is an abstract list of milestones for the rewrite.
+
+- [x] Migrate to discord.py version 2
+- [x] Replace message commands with slash commands
+- [ ] Store game state in a database
+- [ ] Rewrite game logic to be stateless
+- [ ] Rewrite everything to use a serverless Discord API wrapper
+
 ## Usage
 
 > Note: the terms "server" and "guild" are used interchangeably throughout this document.
