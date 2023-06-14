@@ -19,7 +19,7 @@ from discohook import (
     command,
 )
 
-from bot import RussianRoulette
+from main import RussianRoulette
 from config import config
 
 # TODO: make this work
