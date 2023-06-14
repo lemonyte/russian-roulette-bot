@@ -1,5 +1,4 @@
 import os
-import sys
 
 import yaml
 
@@ -10,7 +9,7 @@ try:
 except ModuleNotFoundError:
     pass
 
-PREVIEW = "--preview" in sys.argv or "-p" in sys.argv
+PREVIEW = os.getenv("PREVIEW", "").lower() in ("true", "1")
 
 
 class ConfigBase:
@@ -124,7 +123,9 @@ class _Config(ConfigBase):
         r"&permissions=412384282688&scope=applications.commands%20bot"
     )
     preview: bool = PREVIEW
-    token: str = os.getenv("DISCORD_TOKEN_PREVIEW" if PREVIEW else "DISCORD_TOKEN", "")
+    application_id: str = os.getenv("DISCORD_APPLICATION_ID", "")
+    public_key: str = os.getenv("DISCORD_PUBLIC_KEY", "")
+    token: str = os.getenv("DISCORD_TOKEN", "")
     activity = _ActivityConfig()
     game = _GameConfig()
 
