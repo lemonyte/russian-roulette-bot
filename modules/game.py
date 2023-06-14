@@ -19,8 +19,8 @@ from discohook import (
     command,
 )
 
-from main import RussianRoulette
 from config import config
+from main import RussianRoulette
 
 # TODO: make this work
 

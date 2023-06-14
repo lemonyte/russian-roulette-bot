@@ -8,7 +8,7 @@
 #             strip_after_prefix=True,
 #         )
 
-from discohook import ApplicationCommand, Client
+from discohook import Client
 
 from config import config
 
@@ -22,5 +22,6 @@ class RussianRoulette(Client):
             **kwargs,
         )
         self.load_modules("modules")
+
 
 app = RussianRoulette()
