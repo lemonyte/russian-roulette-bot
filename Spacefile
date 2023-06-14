@@ -1,0 +1,25 @@
+# Spacefile Docs: https://go.deta.dev/docs/spacefile/v0
+v: 0
+micros:
+  - name: bot
+    src: ./
+    engine: python3.9
+    primary: true
+    run: uvicorn main:app
+    dev: uvicorn main:app --reload
+    public_routes:
+      - /interactions
+    presets:
+      env:
+        - name: PREVIEW
+          description: Whether the bot is in preview mode.
+          default: "false"
+
+        - name: DISCORD_APPLICATION_ID
+          description: The application ID of the bot.
+
+        - name: DISCORD_PUBLIC_KEY
+          description: The public key of the bot.
+
+        - name: DISCORD_TOKEN
+          description: The token of the bot.
