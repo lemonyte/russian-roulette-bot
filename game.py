@@ -1,13 +1,36 @@
-import asyncio
 import random
+from io import BytesIO
 from typing import Optional, Sequence
 
 from deta import Base
-from discord import ButtonStyle, Embed, File, Interaction, app_commands, ui
-from discord.abc import User
-from discord.ext.commands import Bot, Cog
+from discohook import (
+    Button,
+    ButtonStyle,
+    Embed,
+    File,
+    Interaction,
+    Member,
+    Message,
+    PartialChannel,
+    PartialEmoji,
+    User,
+    View,
+    button,
+    command,
+)
 
+from bot import RussianRoulette
 from config import config
+
+# TODO: make this work
+
+# def with_game(func):
+#     @functools.wraps(func)
+#     async def wrapper(interaction: Interaction, *args, **kwargs):
+#         with await games.get(interaction.channel.id, interaction.client) as game:
+#             await func(interaction, game, *args, **kwargs)
+
+#     return wrapper
 
 
 class GameError(Exception):
@@ -15,21 +38,35 @@ class GameError(Exception):
 
 
 class GameInstance:
-    def __init__(self, channel, creator: User, players: Sequence[User]):
+    client: RussianRoulette
+
+    def __init__(self, channel: PartialChannel, creator: User, players: Sequence[User]):
         self.channel = channel
+        self.message: Optional[Message] = None
         self.creator = creator
         self.players = list(players)
-        self.current_player = creator
-        self.started = asyncio.Event()
-        self.stopped = asyncio.Event()
+        self.current_player = self.creator
+        self.started = False
+        self.stopped = False
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        if exc_type is None:
+            if self.stopped:
+                await games.delete(self.channel.id)
+            else:
+                await games.update(self)
 
     @classmethod
-    def from_dict(cls, data: dict, bot: Bot):
+    def from_dict(cls, data: dict):
         try:
-            channel = bot.get_channel(data["channel"])
-            creator = bot.get_user(data["creator"])
-            players = [bot.get_user(id) for id in data["players"]]
-            current_player = bot.get_user(data["current_player"])
+            channel = PartialChannel({"id": data["channel"]}, cls.client)
+            message = Message(data["message"], cls.client)
+            creator = User(data["creator"], cls.client)
+            players = [User(id, cls.client) for id in data["players"]]
+            current_player = User(data["current_player"], cls.client)
             started = data["started"]
             stopped = data["stopped"]
         except (KeyError, TypeError) as exc:
@@ -42,32 +79,32 @@ class GameInstance:
             creator=creator,
             players=players,
         )
+        game.message = message
         game.current_player = current_player
-        if started:
-            game.started.set()
-        if stopped:
-            game.stopped.set()
+        game.started = started
+        game.stopped = stopped
         return game
 
     def to_dict(self) -> dict:
         return {
             "channel": self.channel.id,
-            "creator": self.creator.id,
-            "players": [player.id for player in self.players],
-            "current_player": self.current_player.id,
-            "started": self.started.is_set(),
-            "stopped": self.stopped.is_set(),
+            "message": self.message.data if self.message is not None else None,
+            "creator": self.creator.data,
+            "players": [player.data for player in self.players],
+            "current_player": self.current_player.data,
+            "started": self.started,
+            "stopped": self.stopped,
         }
 
     def start(self):
         if len(self.players) <= 0:
             raise GameError("No players left in game.")
         self.current_player = self.players[0]
-        self.started.set()
+        self.started = True
 
     def stop(self):
-        self.started.set()
-        self.stopped.set()
+        self.started = True
+        self.stopped = True
 
     def next(self):
         if len(self.players) <= 0:
@@ -83,66 +120,121 @@ class GameInstance:
     def remove_player(self, player: User):
         if player in self.players:
             self.players.remove(player)
-        if len(self.players) <= 0 and self.started.is_set():
+        if len(self.players) <= 0 and self.started:
             self.stop()
         if len(self.players) > 0:
             self.current_player = self.players[0]
 
 
 class GameDB:
-    def __init__(self, bot: Bot):
-        self.bot = bot
+    def __init__(self):
         self._db = Base("games_preview" if config.preview else "games")
+        self._cache = {}
 
-    def get(self, id: int) -> Optional[GameInstance]:
-        data = self._db.get(str(id))
+    async def check(self, id: str) -> bool:
+        return self._db.get(id) is not None
+
+    async def get(self, id: str) -> GameInstance:
+        if id in self._cache:
+            return self._cache[id]
+        data = self._db.get(id)
         if data is not None:
-            return GameInstance.from_dict(data, self.bot)  # type: ignore
-        return data
+            game = GameInstance.from_dict(data)  # type: ignore
+            self._cache[id] = game
+            return game
+        raise GameError("Game not found.")
 
-    def put(self, game: GameInstance) -> str:
-        self._db.insert(game.to_dict(), key=str(game.channel.id), expire_in=15 * 60)
+    async def put(self, game: GameInstance) -> str:
+        self._db.insert(game.to_dict(), key=game.channel.id, expire_in=15 * 60)
+        self._cache[game.channel.id] = game
         return game.channel.id
 
-    def delete(self, id: int):
-        self._db.delete(str(id))
+    async def update(self, game: GameInstance) -> str:
+        self._db.update(game.to_dict(), key=game.channel.id)
+        self._cache[game.channel.id] = game
+        return game.channel.id
+
+    async def delete(self, id: str):
+        self._db.delete(id)
+        del self._cache[id]
 
 
-class View(ui.View):
-    async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item, /):
-        message = ":x: " + str(error)
-        if interaction.response.is_done():
-            await interaction.followup.send(message, ephemeral=True)
+async def start_game_view() -> View:
+    view = View()
+    view.add_buttons(menu_button)
+    return view
+
+
+async def menu_view(interaction: Interaction) -> View:
+    async with await games.get(interaction.channel.id) as game:
+        if interaction.author in game.players:
+            join_leave_button.label = "Leave Game"
+            join_leave_button.emoji = PartialEmoji(name="📤")
         else:
-            await interaction.response.send_message(message, ephemeral=True)
-        return await super().on_error(interaction, error, item)
+            join_leave_button.label = "Join Game"
+            join_leave_button.emoji = PartialEmoji(name="📥")
+        if game.started:
+            start_stop_button.label = "Stop Game"
+            start_stop_button.style = ButtonStyle.red
+            start_stop_button.emoji = PartialEmoji(name="🛑")
+        else:
+            start_stop_button.label = "Start Game"
+            start_stop_button.emoji = PartialEmoji(name="✅")
+        if game.stopped:
+            join_leave_button.disabled = True
+            start_stop_button.disabled = True
+        else:
+            join_leave_button.disabled = False
+            start_stop_button.disabled = False
+        if interaction.author != game.creator or len(game.players) <= 0:
+            start_stop_button.disabled = True
+        else:
+            start_stop_button.disabled = False
+        view = View()
+        view.add_buttons(join_leave_button, start_stop_button)
+        return view
 
 
-class StartGameView(View):
-    # Interaction tokens are valid for 15 minutes (900 seconds).
-    def __init__(self, interaction: Interaction, *, timeout: Optional[float] = 890):
-        super().__init__(timeout=timeout)
-        self.interaction = interaction
-        self.game = GameInstance(
-            interaction.channel,
-            self.interaction.user,
-            [self.interaction.user],
-        )
+async def shoot_view(btn: Optional[Button] = None) -> View:
+    if btn is None:
+        btn = ShootButton()
+    view = View()
+    view.add_buttons(btn)
+    return view
 
-    def stop(self):
-        self.menu_button.disabled = True
-        self.game.stop()
-        super().stop()
 
-    async def on_timeout(self):
-        self.stop()
-        embed = self.create_embed(
-            title="Game Timed Out",
-            description="Use </start:1045533617910206515> to start a new game.",
-        )
-        await self.update_embed(embed)
+# class View(ui.View):
+#     async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item, /):
+#         message = ":x: " + str(error)
+#         if interaction.response.is_done():
+#             await interaction.followup.send(message, ephemeral=True)
+#         else:
+#             await interaction.response.send_message(message, ephemeral=True)
+#         return await super().on_error(interaction, error, item)
 
-    def create_embed(self, *, title: Optional[str] = None, description: Optional[str] = None) -> Embed:
+
+# class StartGameView(View):
+#     # Interaction tokens are valid for 15 minutes (900 seconds).
+#     def stop(self):
+#         self.menu_button.disabled = True
+#         self.game.stop()
+#         super().stop()
+
+#     async def on_timeout(self):
+#         self.stop()
+#         embed = self.create_embed(
+#             title="Game Timed Out",
+#             description="Use </start:1045533617910206515> to start a new game.",
+#         )
+#         await self.update_embed(embed)
+
+
+async def create_init_embed(
+    interaction: Interaction,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+) -> Embed:
+    async with await games.get(interaction.channel.id) as game:
         if title is None:
             title = "Starting Game"
         if description is None:
@@ -155,246 +247,228 @@ class StartGameView(View):
         )
         embed.add_field(
             name="Players",
-            value="\n".join(player.mention for player in self.game.players),
+            value="\n".join(player.mention for player in game.players),
         )
         return embed
 
-    async def send_embed(self):
-        await self.interaction.response.send_message(embed=self.create_embed(), view=self)
 
-    async def update_embed(self, embed: Optional[Embed] = None, *, view: Optional[ui.View] = None, **kwargs):
+async def update_init_embed(interaction: Interaction, embed: Optional[Embed] = None, view: Optional[View] = None):
+    async with await games.get(interaction.channel.id) as game:
         if embed is None:
-            embed = self.create_embed()
+            embed = await create_init_embed(interaction)
         if view is None:
-            view = self
-        await self.interaction.edit_original_response(embed=embed, view=view, **kwargs)
-
-    @ui.button(label="Menu", style=ButtonStyle.blurple, emoji="📑")
-    async def menu_button(self, interaction: Interaction, button: ui.Button):  # pylint: disable=unused-argument
-        menu = GameMenuView(self, interaction)
-        await interaction.response.send_message("Game Menu", view=menu, ephemeral=True)
+            view = await start_game_view()
+        if not game.message:
+            raise ValueError("this should never happen")
+        await game.message.edit(embed=embed, view=view)
 
 
-class GameMenuView(View):
-    def __init__(self, parent: StartGameView, interaction: Interaction, *, timeout: Optional[float] = 180):
-        super().__init__(timeout=timeout)
-        self.parent = parent
-        if interaction.user in self.parent.game.players:
-            self.join_leave_button.label = "Leave Game"
-            self.join_leave_button.emoji = "📤"
+@button(label="Menu", style=ButtonStyle.blurple, emoji="📑")
+async def menu_button(interaction: Interaction):
+    await interaction.response("Game Menu", view=await menu_view(interaction), ephemeral=True)
+
+
+# class GameMenuView(View):
+#     def stop(self):
+#         self.join_leave_button.disabled = True
+#         self.start_stop_button.disabled = True
+#         # self.parent.stop()
+#         # super().stop()
+
+
+@button(label="Join Game", style=ButtonStyle.blurple, emoji="📥")
+async def join_leave_button(interaction: Interaction):
+    async with await games.get(interaction.channel.id) as game:
+        if interaction.author not in game.players:
+            game.add_player(interaction.author)
         else:
-            self.join_leave_button.label = "Join Game"
-            self.join_leave_button.emoji = "📥"
-        if self.parent.game.started.is_set():
-            self.start_stop_button.label = "Stop Game"
-            self.start_stop_button.style = ButtonStyle.red
-            self.start_stop_button.emoji = "🛑"
-        else:
-            self.start_stop_button.label = "Start Game"
-            self.start_stop_button.emoji = "✅"
-        if self.parent.game.stopped.is_set():
-            self.join_leave_button.disabled = True
-            self.start_stop_button.disabled = True
-        if interaction.user != self.parent.game.creator or len(self.parent.game.players) <= 0:
-            self.start_stop_button.disabled = True
+            game.remove_player(interaction.author)
+        # if game.stopped:
+        #     self.stop()
+        await interaction.update_message(view=await menu_view(interaction))
+        await update_init_embed(interaction)
 
-    def stop(self):
-        self.join_leave_button.disabled = True
-        self.start_stop_button.disabled = True
-        self.parent.stop()
-        super().stop()
 
-    @ui.button(label="Join Game", style=ButtonStyle.blurple, emoji="📥")
-    async def join_leave_button(self, interaction: Interaction, button: ui.Button):
-        if interaction.user not in self.parent.game.players:
-            self.parent.game.add_player(interaction.user)
-            button.label = "Leave Game"
-            button.emoji = "📤"
-        else:
-            self.parent.game.remove_player(interaction.user)
-            button.label = "Join Game"
-            button.emoji = "📥"
-        if len(self.parent.game.players) <= 0:
-            self.start_stop_button.disabled = True
-        else:
-            self.start_stop_button.disabled = False
-        if self.parent.game.stopped.is_set():
-            self.stop()
-        await interaction.response.edit_message(view=self)
-        await self.parent.update_embed()
-
-    @ui.button(label="Start Game", style=ButtonStyle.green, emoji="✅", row=1)
-    async def start_stop_button(self, interaction: Interaction, button: ui.Button):
-        if not self.parent.game.started.is_set():
-            self.parent.game.start()
-            button.label = "Stop Game"
-            button.style = ButtonStyle.red
-            button.emoji = "🛑"
+@button(label="Start Game", style=ButtonStyle.green, emoji="✅")
+async def start_stop_button(interaction: Interaction):
+    async with await games.get(interaction.channel.id) as game:
+        if not game.started:
+            game.start()
             title = "Game Started"
         else:
-            self.stop()
-            button.disabled = True
+            # self.stop()
             title = "Game Stopped"
-        await interaction.response.edit_message(view=self)
-        await self.parent.update_embed(self.parent.create_embed(title=title))
+        await interaction.update_message(view=await menu_view(interaction))
+        await update_init_embed(interaction, await create_init_embed(interaction, title))
+        await send_shoot_message(interaction)
 
 
-class ShootView(View):
-    def __init__(self, game: GameInstance, *, timeout: Optional[float] = 30):
-        super().__init__(timeout=timeout)
-        self.game = game
-        self.message = None
-        self.finished = asyncio.Event()
+# class ShootView(View):
+#     def stop(self):
+#         self.finished.set()
+#         super().stop()
 
-    def stop(self):
-        self.finished.set()
-        super().stop()
+#     async def on_timeout(self):
+#         if self.message is None:
+#             return
+#         self.shoot_button.disabled = True
+#         self.shoot_button.label = "Timed out"
+#         self.shoot_button.emoji = "⌛"
+#         self.shoot_button.style = ButtonStyle.grey
+#         response = random.choice(config.game.timeout_responses).format(player=self.game.current_player.display_name)
+#         embed = Embed(
+#             title=f"{self.game.current_player.display_name}'s Turn",
+#             description=response,
+#             color=config.color,
+#             url=config.url,
+#         )
+#         embed.set_thumbnail(url="attachment://spin.gif")
+#         await self.message.edit(embed=embed, view=self)
+#         self.game.remove_player(self.game.current_player)
+#         self.stop()
 
-    async def on_timeout(self):
-        if self.message is None:
-            return
-        self.shoot_button.disabled = True
-        self.shoot_button.label = "Timed out"
-        self.shoot_button.emoji = "⌛"
-        self.shoot_button.style = ButtonStyle.gray
-        response = random.choice(config.game.timeout_responses).format(player=self.game.current_player.display_name)
+
+async def send_shoot_message(interaction: Interaction):
+    async with await games.get(interaction.channel.id) as game:
         embed = Embed(
-            title=f"{self.game.current_player.display_name}'s Turn",
-            description=response,
+            title=f"{game.current_player.name}'s Turn",
+            # description=f"Click the button below to shoot.\nYou have {self.timeout} seconds.",
+            description="Click the button below to shoot.",
             color=config.color,
             url=config.url,
         )
-        embed.set_thumbnail(url="attachment://spin.gif")
-        await self.message.edit(embed=embed, view=self)
-        self.game.remove_player(self.game.current_player)
-        self.stop()
-
-    async def send_embed(self):
-        embed = Embed(
-            title=f"{self.game.current_player.display_name}'s Turn",
-            description=f"Click the button below to shoot.\nYou have {self.timeout} seconds.",
-            color=config.color,
-            url=config.url,
-        )
-        embed.set_thumbnail(url="attachment://spin.gif")
-        self.message = await self.game.channel.send(
-            embed=embed,
-            view=self,
-            file=File("assets/images/spin.gif", "spin.gif"),
-        )
-
-    @ui.button(label="Shoot", style=ButtonStyle.blurple, emoji="🔫")
-    async def shoot_button(self, interaction: Interaction, button: ui.Button):
-        if self.message is None:
-            return
-        player = interaction.user
-        if player != self.game.current_player:
-            raise GameError("It's not your turn!")
-        button.disabled = True
-        if self.game.stopped.is_set():
-            await interaction.response.edit_message(view=self)
-            await interaction.followup.send("Game has been stopped.", ephemeral=True)
-            await self.on_timeout()
-            return
-        chamber = random.randint(1, 6)
-        if chamber == 1:
-            button.label = "Bang!"
-            button.emoji = "☠"
-            button.style = ButtonStyle.red
-            response = random.choice(config.game.death_responses).format(player=player.display_name)
-            self.game.stop()
-        else:
-            button.label = "*Click*"
-            button.emoji = "✅"
-            button.style = ButtonStyle.green
-            response = random.choice(config.game.luck_responses).format(player=player.display_name)
-            self.game.next()
-        file = File(f"assets/images/frame_{chamber}.png", f"frame_{chamber}.png")
-        embed = Embed(
-            title=f"{player.display_name}'s Turn",
-            description=response,
-            color=config.color,
-            url=config.url,
-        )
-        embed.set_thumbnail(url=f"attachment://frame_{chamber}.png")
-        await interaction.response.edit_message(embed=embed, view=self, attachments=[file])
-        self.stop()
+        embed.thumbnail(url="attachment://spin.gif")
+        with open("assets/images/spin.gif", "rb") as image:
+            file = File("spin.gif", content=BytesIO(image.read()))
+        await game.channel.send(embed=embed, view=await shoot_view(), file=file)
 
 
-class Game(Cog):
-    def __init__(self, bot: Bot):
-        self.bot = bot
-        self.games = GameDB(self.bot)
+class ShootButton(Button):
+    def __init__(
+        self,
+        label: str = "Shoot",
+        *,
+        style=ButtonStyle.blurple,
+        disabled: bool = False,
+        emoji: str = "🔫",
+        **kwargs,
+    ):
+        super().__init__(label=label, style=style, disabled=disabled, emoji=emoji, **kwargs)
+        self.on_interaction(self.callback)
 
-    async def cog_app_command_error(self, interaction: Interaction, error: app_commands.AppCommandError):
-        if isinstance(error, app_commands.CommandInvokeError):
-            message = str(error.original)
-        else:
-            message = str(error)
-        message = ":x: " + message
-        if interaction.response.is_done():
-            await interaction.followup.send(message, ephemeral=True)
-        else:
-            await interaction.response.send_message(message, ephemeral=True)
-
-    def get_game_context(self, interaction: Interaction) -> GameInstance:
-        if interaction.channel_id is None:
-            raise ValueError("channel id must not be None")
-        game = self.games.get(interaction.channel_id)
-        if game:
-            return game
-        raise GameError("No game has been started yet. Use </start:1045533617910206515> to start a new game.")
-
-    @app_commands.command()
-    async def start(self, interaction: Interaction):
-        """Start a new game."""
-        if interaction.channel_id is None:
-            raise ValueError("channel id must not be None")
-        if self.games.get(interaction.channel_id):
-            raise GameError("A game is already in progress.")
-        view = StartGameView(interaction)
-        game = view.game
-        self.games.put(game)
-        await view.send_embed()
-        await view.game.started.wait()
-        try:
-            while not game.stopped.is_set():
-                view = ShootView(game)
-                await view.send_embed()
-                await view.finished.wait()
+    async def callback(self, interaction: Interaction):
+        async with await games.get(interaction.channel.id) as game:
+            player = interaction.author
+            if player != game.current_player:
+                raise GameError("It's not your turn!")
+            player_name = player.nick if isinstance(player, Member) else player.name
+            btn = ShootButton(disabled=True)
+            if game.stopped:
+                await interaction.update_message(view=await shoot_view(btn))
+                await interaction.followup("Game has been stopped.", ephemeral=True)
+                # await self.on_timeout()
+                return
+            chamber = random.randint(1, 6)
+            dead = chamber == 1
+            if dead:
+                btn.label = "Bang!"
+                btn.emoji = PartialEmoji(name="☠")
+                btn.style = ButtonStyle.red
+                response = random.choice(config.game.death_responses).format(player=player_name)
+            else:
+                btn.label = "*Click*"
+                btn.emoji = PartialEmoji(name="✅")
+                btn.style = ButtonStyle.green
+                response = random.choice(config.game.luck_responses).format(player=player_name)
+            with open(f"assets/images/frame_{chamber}.png", "rb") as image:
+                file = File(f"frame_{chamber}.png", content=BytesIO(image.read()))
             embed = Embed(
-                title="Game Over",
-                description="Use </start:1045533617910206515> to play again.",
+                title=f"{player_name}'s Turn",
+                description=response,
                 color=config.color,
                 url=config.url,
             )
-            await game.channel.send(embed=embed)
-        finally:
-            self.games.delete(game.channel.id)
+            embed.thumbnail(url=f"attachment://frame_{chamber}.png")
+            await interaction.update_message(embed=embed, view=await shoot_view(btn), file=file)
+            if dead:
+                game.stop()
+                embed = Embed(
+                    title="Game Over",
+                    description="Use </start:1045533617910206515> to play again.",
+                    color=config.color,
+                    url=config.url,
+                )
+                await game.channel.send(embed=embed)
+            else:
+                game.next()
+                await send_shoot_message(interaction)
+            # self.stop()
 
-    @app_commands.command()
-    async def stop(self, interaction: Interaction):
-        """Stop the current game."""
-        game = self.get_game_context(interaction)
+
+# class Game(Cog):
+#     async def cog_app_command_error(self, interaction: Interaction, error: app_commands.AppCommandError):
+#         if isinstance(error, app_commands.CommandInvokeError):
+#             message = str(error.original)
+#         else:
+#             message = str(error)
+#         message = ":x: " + message
+#         if interaction.response.is_done():
+#             await interaction.followup.send(message, ephemeral=True)
+#         else:
+#             await interaction.response.send_message(message, ephemeral=True)
+
+#     def get_game_context(self, interaction: Interaction) -> GameInstance:
+#         if interaction.channel_id is None:
+#             raise ValueError("channel id must not be None")
+#         game = self.games.get(interaction.channel_id)
+#         if game:
+#             return game
+#         raise GameError("No game has been started yet. Use </start:1045533617910206515> to start a new game.")
+
+
+@command(name="start", description="Start a new game.")
+async def start(interaction: Interaction):
+    if await games.check(interaction.channel.id):
+        raise GameError("A game is already in progress.")
+    game = GameInstance(
+        interaction.channel,
+        interaction.author,
+        [interaction.author],
+    )
+    await games.put(game)
+    await interaction.response(embed=await create_init_embed(interaction), view=await start_game_view())
+    # FIXME: very hacky
+    game.message = await interaction.original_response()
+    await games.update(game)
+
+
+@command(name="stop", description="Stop the current game.")
+async def stop(interaction: Interaction):
+    async with await games.get(interaction.channel.id) as game:
         game.stop()
-        self.games.delete(game.channel.id)
-        await interaction.response.send_message("Stopped the current game.")
+        await interaction.response("Stopped the current game.")
 
-    @app_commands.command()
-    async def info(self, interaction: Interaction):
-        """Show information about the current game."""
-        game = self.get_game_context(interaction)
+
+@command(name="info", description="Show information about the current game.")
+async def info(interaction: Interaction):
+    async with await games.get(interaction.channel.id) as game:
         description = f"Players: {' '.join(player.mention for player in game.players)}\n"
         if hasattr(game.channel, "mention"):
             description += f"Channel: {game.channel.mention}"
         embed = Embed(title="Current Game Information", description=description, color=config.color, url=config.url)
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command()
-    async def gif(self, interaction: Interaction):
-        """Send a GIF version of the game for screenshotting."""
-        await interaction.response.send_message(file=File("assets/images/spin.gif"))
+        await interaction.response(embed=embed)
 
 
-async def setup(bot: Bot):
-    await bot.add_cog(Game(bot))
+@command(name="gif", description="Send a GIF version of the game for screenshotting.")
+async def gif(interaction: Interaction):
+    with open("assets/images/spin.gif", "rb") as image:
+        file = File("spin.gif", content=BytesIO(image.read()))
+    await interaction.response(file=file)
+
+
+games = GameDB()
+
+
+def setup(client: RussianRoulette):
+    GameInstance.client = client
+    client.add_commands(start, stop, info, gif)

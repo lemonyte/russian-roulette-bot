@@ -1,25 +1,26 @@
-from discord import Activity, Intents
-from discord.ext.commands import Bot, when_mentioned_or
+# class RussianRoulette(Bot):
+#     def __init__(self):
+#         super().__init__(
+#             command_prefix=when_mentioned_or(*config.prefixes),
+#             intents=Intents(guilds=True, messages=True),
+#             activity=Activity(name=config.activity.text, type=config.activity.type),
+#             case_insensitive=True,
+#             strip_after_prefix=True,
+#         )
+
+from discohook import ApplicationCommand, Client
 
 from config import config
 
 
-class RussianRoulette(Bot):
-    def __init__(self):
+class RussianRoulette(Client):
+    def __init__(self, **kwargs):
         super().__init__(
-            command_prefix=when_mentioned_or(*config.prefixes),
-            intents=Intents(guilds=True, messages=True),
-            activity=Activity(name=config.activity.text, type=config.activity.type),
-            case_insensitive=True,
-            strip_after_prefix=True,
+            application_id=config.application_id,
+            public_key=config.public_key,
+            token=config.token,
+            **kwargs,
         )
+        self.load_modules("modules")
 
-    async def setup_hook(self):
-        await self.load_extension("core")
-        await self.load_extension("game")
-        # await self.tree.sync()
-
-
-if __name__ == "__main__":
-    bot = RussianRoulette()
-    bot.run(config.token)
+app = RussianRoulette()

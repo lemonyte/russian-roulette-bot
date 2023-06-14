@@ -1,83 +1,80 @@
-# pyright: reportOptionalMemberAccess=false
-
 import sys
-from datetime import datetime, timedelta
 
-import discord
-from discord import Embed, Interaction, app_commands
-from discord.ext.commands import Bot, Cog
+from discohook import Client, Embed, Interaction, __version__, command
 
 from config import config
 
 
-class Core(Cog):
-    def __init__(self, bot: Bot):
-        self.bot = bot
-        self.start_time = datetime.utcnow()
+class Core:
+    def __init__(self, client: Client):
+        self.client = client
+        self.client.on_error(self.error_handler)
+        self.client.add_commands(self.invite, self.debug, self.about, self.rules)
 
-    @Cog.listener()
-    async def on_ready(self):
-        print(f"Startup complete - logged in as {self.bot.user}")
+    async def error_handler(self, interaction: Interaction, exception: Exception):
+        if interaction.responded:
+            await interaction.followup(f"```py\nError: {exception}\n```", ephemeral=True)
+        else:
+            await interaction.response(f"```py\nError: {exception}\n```", ephemeral=True)
+        raise exception
+        # FIXME: the above is not recommended as it might leak secret tokens
 
-    @app_commands.command()
+    @command(name="ping", description="Check if the bot is online.")
     async def ping(self, interaction: Interaction):
-        """Check the bot's latency."""
-        await interaction.response.send_message(f"Pong! Latency is `{round(self.bot.latency * 1000)}ms`")
+        # TODO: latency
+        await interaction.response("Pong!")
 
-    @app_commands.command()
+    @command(name="invite", description="Get an invite link for the bot.")
     async def invite(self, interaction: Interaction):
-        """Get an invite link for the bot."""
-        await interaction.response.send_message(f"Invite me to your server: {config.invite}")
+        await interaction.response(f"Invite me to your server: {config.invite}")
 
-    @app_commands.command()
+    @command(name="debug", description="Show debug information.")
     async def debug(self, interaction: Interaction):
-        """Show debug information."""
-        uptime = timedelta(seconds=int((datetime.utcnow() - self.start_time).total_seconds()))
+        user = await interaction.client.as_user()
+        # TODO: permissions, scopes
         description = f"""
         **General**
         ```
-        Name: {self.bot.user}
-        ID: {self.bot.application_id}
+        Name: {user.name}
+        ID: {user.id}
+        Permissions: {None}
+        Scopes: {None}
         Preview: {config.preview}
-        Command prefixes: {', '.join(config.prefixes + [self.bot.user.mention])}
         URL: {config.url}
-        ```
-
-        **Network**
-        ```
-        Uptime: {uptime}
-        Latency: {round(self.bot.latency * 1000)}ms
-        Gateway: {self.bot.ws.gateway}
         ```
 
         **Runtime**
         ```
         Python version: {sys.version.split()[0]}
-        discord.py version: {discord.__version__} {discord.version_info.releaselevel}
-        Cogs: {', '.join(self.bot.cogs)}
-        Flags value: {self.bot.application_flags.value}
+        discohook version: {__version__}
         ```
         """
         description = "\n".join(line.strip() for line in description.splitlines())
         embed = Embed(title="Debug Info", description=description, color=config.color, url=config.url)
-        await interaction.response.send_message(embed=embed)
+        await interaction.response(embed=embed)
 
-    @app_commands.command()
+    @command(name="about", description="Show information about the bot.")
     async def about(self, interaction: Interaction):
-        """Show information about the bot."""
         with open("assets/markdown/about.md", "r") as about_file:
-            about = about_file.read()
-        embed = Embed(title=f"About {config.name}", description=about, color=config.color, url=config.url)
-        await interaction.response.send_message(embed=embed)
+            embed = Embed(
+                title=f"About {config.name}",
+                description=about_file.read(),
+                color=config.color,
+                url=config.url,
+            )
+        await interaction.response(embed=embed)
 
-    @app_commands.command()
+    @command(name="rules", description="Show the rules of the game.")
     async def rules(self, interaction: Interaction):
-        """Show the rules of the game."""
         with open("assets/markdown/rules.md", "r") as rules_file:
-            rules = rules_file.read()
-        embed = Embed(title=f"{config.name} Rules", description=rules, color=config.color, url=config.url)
-        await interaction.response.send_message(embed=embed)
+            embed = Embed(
+                title=f"{config.name} Rules",
+                description=rules_file.read(),
+                color=config.color,
+                url=config.url,
+            )
+        await interaction.response(embed=embed)
 
 
-async def setup(bot: Bot):
-    await bot.add_cog(Core(bot))
+def setup(client: Client):
+    Core(client)
