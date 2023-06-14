@@ -1,4 +1,5 @@
-discord.py~=2.3.0
+git+https://github.com/jnsougata/discohook@0afd4fc6ccca40af2dff1bc9b01950b02ceebc26
 python-dotenv~=1.0.0
 PyYAML~=6.0
 deta~=1.1.0
+uvicorn~=0.22.0
