@@ -279,6 +279,7 @@ async def start_stop_button(interaction: Interaction):
             title = "Game Started"
         else:
             # self.stop()
+            game.stop()
             title = "Game Stopped"
         await interaction.update_message(view=await menu_view(interaction))
         await update_init_embed(interaction, await create_init_embed(game.players, title))
