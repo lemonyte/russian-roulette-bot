@@ -277,13 +277,15 @@ async def start_stop_button(interaction: Interaction):
         if not game.started:
             game.start()
             title = "Game Started"
+            description = "Click the Menu button below to join or stop the game."
+            await send_shoot_message(interaction)
         else:
             # self.stop()
             game.stop()
             title = "Game Stopped"
+            description = "Start a new game with the </start:1045533617910206515> command."
         await interaction.update_message(view=await menu_view(interaction))
-        await update_init_embed(interaction, await create_init_embed(game.players, title))
-        await send_shoot_message(interaction)
+        await update_init_embed(interaction, await create_init_embed(game.players, title, description))
 
 
 # class ShootView(View):
