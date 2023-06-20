@@ -86,7 +86,7 @@ class GameInstance:
     def to_dict(self) -> dict:
         return {
             "channel": self.channel.id,
-            "message": self.message.data if self.message is not None else None,
+            "message": self.message.data,
             "creator": self.creator.data,
             "players": [player.data for player in self.players],
             "current_player": self.current_player.data,
