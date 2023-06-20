@@ -23,7 +23,6 @@ class RussianRoulette(Client):
             token=config.token,
             **kwargs,
         )
-        self.load_modules("modules")
         self.commands = {}
 
     async def fetch_commands(self) -> dict:
@@ -40,3 +39,4 @@ class RussianRoulette(Client):
 
 
 app = RussianRoulette()
+app.load_modules("modules")
