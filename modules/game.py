@@ -20,7 +20,7 @@ from discohook import (
 )
 
 from config import config
-from main import RussianRoulette
+from main import RussianRoulette, app
 
 # TODO: make this work
 
@@ -38,11 +38,9 @@ class GameError(Exception):
 
 
 class GameInstance:
-    client: RussianRoulette
-
-    def __init__(self, channel: PartialChannel, creator: User, players: Sequence[User]):
+    def __init__(self, channel: PartialChannel, message: Message, creator: User, players: Sequence[User]):
         self.channel = channel
-        self.message: Optional[Message] = None
+        self.message = message
         self.creator = creator
         self.players = list(players)
         self.current_player = self.creator
@@ -62,11 +60,11 @@ class GameInstance:
     @classmethod
     def from_dict(cls, data: dict):
         try:
-            channel = PartialChannel({"id": data["channel"]}, cls.client)
-            message = Message(data["message"], cls.client)
-            creator = User(data["creator"], cls.client)
-            players = [User(id, cls.client) for id in data["players"]]
-            current_player = User(data["current_player"], cls.client)
+            channel = PartialChannel({"id": data["channel"]}, app)
+            message = Message(data["message"], app)
+            creator = User(data["creator"], app)
+            players = [User(id, app) for id in data["players"]]
+            current_player = User(data["current_player"], app)
             started = data["started"]
             stopped = data["stopped"]
         except (KeyError, TypeError) as exc:
@@ -76,10 +74,10 @@ class GameInstance:
         players = [player for player in players if player]
         game = GameInstance(
             channel=channel,
+            message=message,
             creator=creator,
             players=players,
         )
-        game.message = message
         game.current_player = current_player
         game.started = started
         game.stopped = stopped
@@ -230,36 +228,29 @@ async def shoot_view(btn: Optional[Button] = None) -> View:
 
 
 async def create_init_embed(
-    interaction: Interaction,
-    title: Optional[str] = None,
-    description: Optional[str] = None,
+    players: Sequence[User],
+    title: str = "Starting Game",
+    description: str = "Click the Menu button below to join or start the game.",
 ) -> Embed:
-    async with await games.get(interaction.channel.id) as game:
-        if title is None:
-            title = "Starting Game"
-        if description is None:
-            description = "Click the Menu button below to join the game."
-        embed = Embed(
-            title=title,
-            description=description,
-            color=config.color,
-            url=config.url,
-        )
-        embed.add_field(
-            name="Players",
-            value="\n".join(player.mention for player in game.players),
-        )
-        return embed
+    embed = Embed(
+        title=title,
+        description=description,
+        color=config.color,
+        url=config.url,
+    )
+    embed.add_field(
+        name="Players",
+        value="\n".join(player.mention for player in players),
+    )
+    return embed
 
 
 async def update_init_embed(interaction: Interaction, embed: Optional[Embed] = None, view: Optional[View] = None):
     async with await games.get(interaction.channel.id) as game:
         if embed is None:
-            embed = await create_init_embed(interaction)
+            embed = await create_init_embed(game.players)
         if view is None:
             view = await start_game_view()
-        if not game.message:
-            raise ValueError("this should never happen")
         await game.message.edit(embed=embed, view=view)
 
 
@@ -299,7 +290,7 @@ async def start_stop_button(interaction: Interaction):
             # self.stop()
             title = "Game Stopped"
         await interaction.update_message(view=await menu_view(interaction))
-        await update_init_embed(interaction, await create_init_embed(interaction, title))
+        await update_init_embed(interaction, await create_init_embed(game.players, title))
         await send_shoot_message(interaction)
 
 
@@ -430,16 +421,17 @@ class ShootButton(Button):
 async def start(interaction: Interaction):
     if await games.check(interaction.channel.id):
         raise GameError("A game is already in progress.")
+    await interaction.response(embed=await create_init_embed([interaction.author]), view=await start_game_view())
+    message = await interaction.original_response()
+    if not message:
+        raise ValueError("failed to get original response message")
     game = GameInstance(
-        interaction.channel,
-        interaction.author,
-        [interaction.author],
+        channel=interaction.channel,
+        message=message,
+        creator=interaction.author,
+        players=[interaction.author],
     )
     await games.put(game)
-    await interaction.response(embed=await create_init_embed(interaction), view=await start_game_view())
-    # FIXME: very hacky
-    game.message = await interaction.original_response()
-    await games.update(game)
 
 
 @command(name="stop", description="Stop the current game.")
@@ -470,5 +462,4 @@ games = GameDB()
 
 
 def setup(client: RussianRoulette):
-    GameInstance.client = client
     client.add_commands(start, stop, info, gif)
