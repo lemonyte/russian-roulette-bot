@@ -177,16 +177,17 @@ async def menu_view(interaction: Interaction) -> View:
             start_stop_button.emoji = PartialEmoji(name="🛑")
         else:
             start_stop_button.label = "Start Game"
+            start_stop_button.style = ButtonStyle.green
             start_stop_button.emoji = PartialEmoji(name="✅")
+        if interaction.author != game.creator or len(game.players) <= 0:
+            start_stop_button.disabled = True
+        else:
+            start_stop_button.disabled = False
         if game.stopped:
             join_leave_button.disabled = True
             start_stop_button.disabled = True
         else:
             join_leave_button.disabled = False
-            start_stop_button.disabled = False
-        if interaction.author != game.creator or len(game.players) <= 0:
-            start_stop_button.disabled = True
-        else:
             start_stop_button.disabled = False
         view = View()
         view.add_buttons(join_leave_button, start_stop_button)
@@ -199,16 +200,6 @@ async def shoot_view(btn: Optional[Button] = None) -> View:
     view = View()
     view.add_buttons(btn)
     return view
-
-
-# class View(ui.View):
-#     async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item, /):
-#         message = ":x: " + str(error)
-#         if interaction.response.is_done():
-#             await interaction.followup.send(message, ephemeral=True)
-#         else:
-#             await interaction.response.send_message(message, ephemeral=True)
-#         return await super().on_error(interaction, error, item)
 
 
 # class StartGameView(View):
@@ -263,8 +254,8 @@ async def menu_button(interaction: Interaction):
 #     def stop(self):
 #         self.join_leave_button.disabled = True
 #         self.start_stop_button.disabled = True
-#         # self.parent.stop()
-#         # super().stop()
+#         self.parent.stop()
+#         super().stop()
 
 
 @button(label="Join Game", style=ButtonStyle.blurple, emoji="📥")
@@ -458,8 +449,8 @@ async def gif(interaction: Interaction):
     await interaction.response(file=file)
 
 
-games = GameDB()
-
-
 def setup(client: RussianRoulette):
     client.add_commands(start, stop, info, gif)
+
+
+games = GameDB()
