@@ -375,11 +375,12 @@ class ShootButton(Button):
             )
             embed.thumbnail(url=f"attachment://frame_{chamber}.png")
             await interaction.update_message(embed=embed, view=await shoot_view(btn), file=file)
+            start_command_id = await app.get_command_id(start)
             if dead:
                 game.stop()
                 embed = Embed(
                     title="Game Over",
-                    description="Use </start:1045533617910206515> to play again.",
+                    description=f"Use </start:{start_command_id}> to play again.",
                     color=config.color,
                     url=config.url,
                 )
