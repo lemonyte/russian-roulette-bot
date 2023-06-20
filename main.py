@@ -10,7 +10,7 @@
 
 # TODO: bot activity
 
-from discohook import Client
+from discohook import ApplicationCommand, Client
 
 from config import config
 
@@ -24,6 +24,19 @@ class RussianRoulette(Client):
             **kwargs,
         )
         self.load_modules("modules")
+        self.commands = {}
+
+    async def fetch_commands(self) -> dict:
+        if not self.commands:
+            response = await self.http.request("GET", f"/applications/{self.application_id}/commands")
+            commands = await response.json()
+            self.commands = {f"{command['name']}:{command['type']}": command for command in commands}
+        return self.commands
+
+    async def get_command_id(self, command: ApplicationCommand) -> str:
+        if not self.commands:
+            await self.fetch_commands()
+        return self.commands[f"{command.name}:{command.category.value}"]["id"]
 
 
 app = RussianRoulette()
