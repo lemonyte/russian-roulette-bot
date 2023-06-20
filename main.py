@@ -8,6 +8,8 @@
 #             strip_after_prefix=True,
 #         )
 
+# TODO: bot activity
+
 from discohook import Client
 
 from config import config
