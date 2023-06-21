@@ -348,7 +348,7 @@ class ShootButton(Button):
             player = interaction.author
             if player != game.current_player:
                 raise GameError("It's not your turn!")
-            player_name = player.nick if isinstance(player, Member) else player.name
+            player_name = player.nick if isinstance(player, Member) and player.nick else player.name
             btn = ShootButton(disabled=True)
             if game.stopped:
                 await interaction.update_message(view=await shoot_view(btn))
