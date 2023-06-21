@@ -339,9 +339,11 @@ class ShootButton(Button):
         **kwargs,
     ):
         super().__init__(label=label, style=style, disabled=disabled, emoji=emoji, **kwargs)
-        self.on_interaction(self.callback)
+        # HACK: Our callback method can't be named 'callback', because is defined by the parent class's __init__,
+        # so it becomes None here.
+        self.on_interaction(self._callback)
 
-    async def callback(self, interaction: Interaction):
+    async def _callback(self, interaction: Interaction):
         async with await games.get(interaction.channel.id) as game:
             player = interaction.author
             if player != game.current_player:
