@@ -5,7 +5,7 @@ from config import config
 
 
 class RussianRoulette(Bot):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             command_prefix=when_mentioned_or(*config.prefixes),
             intents=Intents(guilds=True, messages=True),
@@ -14,7 +14,7 @@ class RussianRoulette(Bot):
             strip_after_prefix=True,
         )
 
-    async def setup_hook(self):
+    async def setup_hook(self) -> None:
         await self.load_extension("core")
         await self.load_extension("game")
         # await self.tree.sync()

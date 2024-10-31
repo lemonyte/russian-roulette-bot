@@ -1,5 +1,7 @@
 import os
 import sys
+from collections.abc import Sequence
+from pathlib import Path
 
 import yaml
 
@@ -36,16 +38,12 @@ class ConfigBase:
     """
 
     @classmethod
-    def __init_subclass__(cls, /, obj_path: str = "", **kwargs):
-        super().__init_subclass__(**kwargs)
+    def __init_subclass__(cls, /, obj_path: str = "") -> None:
+        super().__init_subclass__()
 
-        file_path = "config_preview.yaml" if PREVIEW else "config.yaml"
+        config_file = Path("config_preview.yaml") if PREVIEW else Path("config.yaml")
 
-        if os.path.isfile(file_path):
-            with open(file_path, "r") as config_file:
-                config_data = yaml.safe_load(config_file)
-        else:
-            config_data = {}
+        config_data = yaml.safe_load(config_file.read_text()) if config_file.is_file() else {}
 
         if obj_path:
             try:
@@ -56,7 +54,7 @@ class ConfigBase:
 
         attrs = {key: value for key, value in vars(cls).items() if not key.startswith("__")}
         typed_attrs = cls.__annotations__
-        untyped_attrs = {key: None for key in attrs.keys() if key not in typed_attrs}
+        untyped_attrs = {key: None for key in attrs if key not in typed_attrs}
         types_map = {**typed_attrs, **untyped_attrs}
 
         for attr, type in types_map.items():
@@ -69,14 +67,16 @@ class ConfigBase:
                 if attr in config_data:
                     attrs[attr] = config_data[attr]
                 elif attr not in attrs:
-                    raise ValueError(f"no value provided for required config field '{attr_path}'")
+                    msg = f"no value provided for config field '{attr_path}'"
+                    raise ValueError(msg)
 
             # Check that the value is of the correct type if a type hint is provided.
             if type and not isinstance(attrs[attr], type):
-                raise TypeError(
-                    f"config field '{attr_path}' must be of type '{type.__name__}'"
-                    f", found '{attrs[attr].__class__.__name__}'"
+                msg = (
+                    f"config field '{attr_path}' must be of type '{type.__name__}', "
+                    f"found '{attrs[attr].__class__.__name__}'"
                 )
+                raise TypeError(msg)
 
             setattr(cls, attr, attrs[attr])
 
@@ -88,15 +88,15 @@ class _ActivityConfig(ConfigBase, obj_path="activity"):
 
 
 class _GameConfig(ConfigBase, obj_path="game"):
-    luck_responses: list = [
+    luck_responses: Sequence = (
         "{player} got lucky.",
         "{player} is having a good day.",
         "{player} lives on to the next round.",
         "{player} survived the odds.",
         "{player} rigged the game.",
         "{player} cheated death.",
-    ]
-    death_responses: list = [
+    )
+    death_responses: Sequence = (
         "{player} died.",
         "{player} wasn't lucky enough.",
         "{player} took too many chances.",
@@ -106,19 +106,19 @@ class _GameConfig(ConfigBase, obj_path="game"):
         "{player} hit a dead end.",
         "{player} shot themselves. If this was real life you'd be dead.",
         "RIP {player}.",
-    ]
-    timeout_responses: list = [
+    )
+    timeout_responses: Sequence = (
         "{player} took too long to decide.",
         "{player} couldn't pull the trigger.",
         "{player} wasn't brave enough.",
-    ]
+    )
 
 
 class _Config(ConfigBase):
     name: str = "Russian Roulette"
     url: str = "https://github.com/lemonyte/russian-roulette-bot"
     color: int = 0xFF0000
-    prefixes: list = ["rr", "russian-roulette"]
+    prefixes: Sequence = ("rr", "russian-roulette")
     invite: str = (
         r"https://discord.com/api/oauth2/authorize?client_id=901284333770383440"
         r"&permissions=412384282688&scope=applications.commands%20bot"
