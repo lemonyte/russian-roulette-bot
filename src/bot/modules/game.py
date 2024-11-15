@@ -68,7 +68,7 @@ class GameInstance:
             raise TypeError(msg)
         players = [player for player in players if player]
         game = GameInstance(
-            channel=channel,  # type: ignore  # PrivateChannels should always be MessageableChannels
+            channel=channel,  # type: ignore[reportArgumentType]  # PrivateChannels should always be MessageableChannels
             creator=creator,
             players=players,
         )
