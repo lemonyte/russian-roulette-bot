@@ -18,4 +18,3 @@ class RussianRoulette(Bot):
     async def setup_hook(self) -> None:
         await self.load_extension("bot.modules.core")
         await self.load_extension("bot.modules.game")
-        # await self.tree.sync()

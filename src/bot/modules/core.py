@@ -31,6 +31,13 @@ class Core(Cog):
         await interaction.response.send_message(f"Pong! Latency is `{round(self.bot.latency * 1000)}ms`")
 
     @app_commands.command()
+    async def sync(self, interaction: Interaction) -> None:
+        """Sync commands with Discord."""
+        await interaction.response.defer()
+        await self.bot.tree.sync()
+        await interaction.followup.send("Commands synced!")
+
+    @app_commands.command()
     async def invite(self, interaction: Interaction) -> None:
         """Get an invite link for the bot."""
         await interaction.response.send_message(f"Invite me to your server: {self.bot.settings.invite}")
