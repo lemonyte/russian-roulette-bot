@@ -1,7 +1,7 @@
 from discord import Activity, Intents
 from discord.ext.commands import Bot, when_mentioned_or
 
-from bot.config import Settings
+from bot.settings import Settings
 
 
 class RussianRoulette(Bot):

@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     game: GameSettings = GameSettings()
 
     model_config = SettingsConfigDict(
-        yaml_file="config_preview.yaml" if PREVIEW else "config.yaml",
+        yaml_file="settings_preview.yaml" if PREVIEW else "settings.yaml",
         env_file=".env",
         env_prefix="preview_" if PREVIEW else "",
         extra="ignore",
