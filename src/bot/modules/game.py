@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import random
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from deta import Base
 from discord import (
     ButtonStyle,
     CategoryChannel,
@@ -121,23 +122,35 @@ class GameInstance:
 
 
 class GameDB:
-    def __init__(self, bot: Bot) -> None:
+    def __init__(self, bot: RussianRoulette, /, *, file_path: Path = Path("data/games.json")) -> None:
         self.bot = bot
-        self._db = Base("games_preview" if config.preview else "games")
+        self._file_path = file_path
 
     def get(self, id: int) -> GameInstance | None:
-        data = self._db.get(str(id))
+        with self._file_path.open("r") as file:
+            games = dict(json.load(file))
+        data = games.get(str(id), None)
         if data is not None:
-            return GameInstance.from_dict(data, self.bot)  # type: ignore
+            return GameInstance.from_dict(data, self.bot)
         return data
 
     def put(self, game: GameInstance) -> str:
+        with self._file_path.open("r") as file:
+            games = dict(json.load(file))
         key = str(game.channel.id)
-        self._db.insert(game.to_dict(), key=key, expire_in=15 * 60)
+        games[key] = game.to_dict()
+        with self._file_path.open("w") as file:
+            json.dump(games, file)
         return key
 
     def delete(self, id: int) -> None:
-        self._db.delete(str(id))
+        with self._file_path.open("r") as file:
+            games = dict(json.load(file))
+        key = str(id)
+        if key in games:
+            del games[key]
+        with self._file_path.open("w") as file:
+            json.dump(games, file)
 
 
 class View(ui.View):

@@ -5,7 +5,6 @@ description = "A Discord bot to play virtual Russian Roulette with your friends.
 readme = "readme.md"
 requires-python = ">=3.11"
 dependencies = [
-    "deta~=1.1.0",
     "discord-py~=2.4.0",
     "pydantic-settings~=2.6.1",
 ]
