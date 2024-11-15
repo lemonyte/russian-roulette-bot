@@ -1,7 +1,7 @@
 from discord import Activity, Intents
 from discord.ext.commands import Bot, when_mentioned_or
 
-from config import config
+from bot.config import config
 
 
 class RussianRoulette(Bot):
@@ -15,11 +15,6 @@ class RussianRoulette(Bot):
         )
 
     async def setup_hook(self) -> None:
-        await self.load_extension("core")
-        await self.load_extension("game")
+        await self.load_extension("modules.core")
+        await self.load_extension("modules.game")
         # await self.tree.sync()
-
-
-if __name__ == "__main__":
-    bot = RussianRoulette()
-    bot.run(config.token)

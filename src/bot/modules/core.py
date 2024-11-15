@@ -8,7 +8,7 @@ import discord
 from discord import Embed, Interaction, app_commands
 from discord.ext.commands import Bot, Cog
 
-from config import config
+from bot.config import config
 
 MARKDOWN_ASSETS_PATH = Path("assets/markdown")
 

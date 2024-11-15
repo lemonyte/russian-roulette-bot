@@ -22,7 +22,7 @@ from discord import (
 )
 from discord.ext.commands import Bot, Cog
 
-from config import config
+from bot.config import config
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

@@ -11,12 +11,17 @@ dependencies = [
     "pyyaml~=6.0.0",
 ]
 
+[dependency-groups]
+dev = [
+    "pre-commit~=3.8.0",
+]
+
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.ruff]
-# src = ["src"]
+src = ["src"]
 line-length = 119
 target-version = "py311"
 
@@ -27,8 +32,3 @@ ignore = ["A", "D", "T20", "TD002", "TD003"]
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
-
-[dependency-groups]
-dev = [
-    "pre-commit~=3.8.0",
-]
