@@ -20,14 +20,18 @@ from discord import (
     app_commands,
     ui,
 )
-from discord.ext.commands import Bot, Cog
+from discord.ext.commands import Cog
 
-from bot.config import config
+from bot.config import Settings
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from discord.abc import MessageableChannel, User
+
+    from bot.bot import RussianRoulette
+
+settings = Settings.model_validate({})
 
 
 class GameError(Exception):
@@ -44,7 +48,7 @@ class GameInstance:
         self.stopped = asyncio.Event()
 
     @classmethod
-    def from_dict(cls, data: dict, bot: Bot) -> GameInstance:
+    def from_dict(cls, data: dict, bot: RussianRoulette) -> GameInstance:
         try:
             channel = bot.get_channel(data["channel"])
             creator = bot.get_user(data["creator"])
@@ -184,8 +188,8 @@ class StartGameView(View):
         embed = Embed(
             title=title,
             description=description,
-            color=config.color,
-            url=config.url,
+            color=settings.color,
+            url=settings.url,
         )
         embed.add_field(
             name="Players",
@@ -291,12 +295,12 @@ class ShootView(View):
         self.shoot_button.label = "Timed out"
         self.shoot_button.emoji = "⌛"
         self.shoot_button.style = ButtonStyle.gray
-        response = random.choice(config.game.timeout_responses).format(player=self.game.current_player.display_name)
+        response = random.choice(settings.game.timeout_responses).format(player=self.game.current_player.display_name)
         embed = Embed(
             title=f"{self.game.current_player.display_name}'s Turn",
             description=response,
-            color=config.color,
-            url=config.url,
+            color=settings.color,
+            url=settings.url,
         )
         embed.set_thumbnail(url="attachment://spin.gif")
         await self.message.edit(embed=embed, view=self)
@@ -307,8 +311,8 @@ class ShootView(View):
         embed = Embed(
             title=f"{self.game.current_player.display_name}'s Turn",
             description=f"Click the button below to shoot.\nYou have {self.timeout} seconds.",
-            color=config.color,
-            url=config.url,
+            color=settings.color,
+            url=settings.url,
         )
         embed.set_thumbnail(url="attachment://spin.gif")
         self.message = await self.game.channel.send(
@@ -336,20 +340,20 @@ class ShootView(View):
             button.label = "Bang!"
             button.emoji = "☠"
             button.style = ButtonStyle.red
-            response = random.choice(config.game.death_responses).format(player=player.display_name)
+            response = random.choice(settings.game.death_responses).format(player=player.display_name)
             self.game.stop()
         else:
             button.label = "*Click*"
             button.emoji = "✅"
             button.style = ButtonStyle.green
-            response = random.choice(config.game.luck_responses).format(player=player.display_name)
+            response = random.choice(settings.game.luck_responses).format(player=player.display_name)
             self.game.next()
         file = File(f"assets/images/frame_{chamber}.png", f"frame_{chamber}.png")
         embed = Embed(
             title=f"{player.display_name}'s Turn",
             description=response,
-            color=config.color,
-            url=config.url,
+            color=settings.color,
+            url=settings.url,
         )
         embed.set_thumbnail(url=f"attachment://frame_{chamber}.png")
         await interaction.response.edit_message(embed=embed, view=self, attachments=[file])
@@ -357,7 +361,7 @@ class ShootView(View):
 
 
 class Game(Cog):
-    def __init__(self, bot: Bot) -> None:
+    def __init__(self, bot: RussianRoulette) -> None:
         self.bot = bot
         self.games = GameDB(self.bot)
 
@@ -401,8 +405,8 @@ class Game(Cog):
             embed = Embed(
                 title="Game Over",
                 description="Use </start:1045533617910206515> to play again.",
-                color=config.color,
-                url=config.url,
+                color=settings.color,
+                url=settings.url,
             )
             await game.channel.send(embed=embed)
         finally:
@@ -423,7 +427,12 @@ class Game(Cog):
         description = f"Players: {' '.join(player.mention for player in game.players)}\n"
         if isinstance(game.channel, TextChannel | Thread | VoiceChannel | StageChannel):
             description += f"Channel: {game.channel.mention}"
-        embed = Embed(title="Current Game Information", description=description, color=config.color, url=config.url)
+        embed = Embed(
+            title="Current Game Information",
+            description=description,
+            color=settings.color,
+            url=settings.url,
+        )
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command()
@@ -432,5 +441,5 @@ class Game(Cog):
         await interaction.response.send_message(file=File("assets/images/spin.gif"))
 
 
-async def setup(bot: Bot) -> None:
+async def setup(bot: RussianRoulette) -> None:
     await bot.add_cog(Game(bot))
