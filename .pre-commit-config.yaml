@@ -11,12 +11,12 @@ repos:
         args: [--markdown-linebreak-ext=md]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.1
+    rev: v0.8.5
     hooks:
       - id: ruff
       - id: ruff-format
 
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.387
+    rev: v1.1.391
     hooks:
       - id: pyright
