@@ -147,8 +147,7 @@ class GameDB:
         with self._file_path.open("r") as file:
             games = dict(json.load(file))
         key = str(id)
-        if key in games:
-            del games[key]
+        games.pop(key, None)
         with self._file_path.open("w") as file:
             json.dump(games, file)
 

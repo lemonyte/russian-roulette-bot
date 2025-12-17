@@ -11,7 +11,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pre-commit~=4.5.0",
+    "prek>=0.2.22",
+    "ty>=0.0.2",
 ]
 
 [build-system]
@@ -26,7 +27,3 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = ["A", "D", "T20", "TD002", "TD003"]
-
-[tool.pyright]
-venvPath = "."
-venv = ".venv"

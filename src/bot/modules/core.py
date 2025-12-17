@@ -45,6 +45,9 @@ class Core(Cog):
     @app_commands.command()
     async def debug(self, interaction: Interaction) -> None:
         """Show debug information."""
+        if not self.bot.user:
+            msg = "not logged in"
+            raise RuntimeError(msg)
         uptime = timedelta(seconds=int((datetime.now(tz=UTC) - self.start_time).total_seconds()))
         description = f"""
         **General**
@@ -52,7 +55,7 @@ class Core(Cog):
         Name: {self.bot.user}
         ID: {self.bot.application_id}
         Preview: {self.bot.settings.preview}
-        Command prefixes: {', '.join([*self.bot.settings.prefixes, self.bot.user.mention])}
+        Command prefixes: {", ".join([*self.bot.settings.prefixes, self.bot.user.mention])}
         URL: {self.bot.settings.url}
         ```
 
@@ -67,7 +70,7 @@ class Core(Cog):
         ```
         Python version: {sys.version.split()[0]}
         discord.py version: {discord.__version__} {discord.version_info.releaselevel}
-        Cogs: {', '.join(self.bot.cogs)}
+        Cogs: {", ".join(self.bot.cogs)}
         Flags value: {self.bot.application_flags.value}
         ```
         """
