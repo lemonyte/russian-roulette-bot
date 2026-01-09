@@ -16,8 +16,11 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=61"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.9.22"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "bot"
 
 [tool.ruff]
 src = ["src"]
