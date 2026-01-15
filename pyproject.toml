@@ -11,8 +11,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "prek>=0.2.27",
-    "ty>=0.0.2",
+    "prek~=0.2.27",
+    "ty~=0.0.2",
 ]
 
 [build-system]
