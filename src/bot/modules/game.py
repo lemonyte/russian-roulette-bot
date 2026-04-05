@@ -68,7 +68,7 @@ class GameInstance:
             raise TypeError(msg)
         players = [player for player in players if player]
         game = GameInstance(
-            channel=channel,  # type: ignore[reportArgumentType]  # PrivateChannels should always be MessageableChannels
+            channel=channel,  # type: ignore[ty:invalid-argument-type] PrivateChannels should always be MessageableChannels
             creator=creator,
             players=players,
         )
@@ -129,7 +129,7 @@ class GameDB:
     def get(self, id: int) -> GameInstance | None:
         with self._file_path.open("r") as file:
             games = dict(json.load(file))
-        data = games.get(str(id), None)
+        data = games.get(str(id))
         if data is not None:
             return GameInstance.from_dict(data, self.bot)
         return data
