@@ -3,7 +3,7 @@ name = "russian-roulette-bot"
 version = "0.1.0"
 description = "A Discord bot to play virtual Russian Roulette with your friends."
 readme = "readme.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "discord-py~=2.7.0",
     "pydantic-settings~=2.13.1",
