@@ -25,7 +25,6 @@ module-name = "bot"
 [tool.ruff]
 src = ["src"]
 line-length = 119
-target-version = "py311"
 
 [tool.ruff.lint]
 select = ["ALL"]
